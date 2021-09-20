@@ -1,0 +1,108 @@
+[
+    {
+        "inputs": [],
+        "name": "spawn",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "rounds",
+                "type": "felt"
+            },
+            {
+                "name": "alter_cell",
+                "type": "felt"
+            }
+        ],
+        "name": "run",
+        "outputs": [
+            {
+                "name": "val0",
+                "type": "felt"
+            },
+            {
+                "name": "val1",
+                "type": "felt"
+            },
+            {
+                "name": "val2",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "view_game",
+        "outputs": [
+            {
+                "name": "row_0",
+                "type": "felt"
+            },
+            {
+                "name": "row_1",
+                "type": "felt"
+            },
+            {
+                "name": "row_2",
+                "type": "felt"
+            },
+            {
+                "name": "row_3",
+                "type": "felt"
+            },
+            {
+                "name": "row_4",
+                "type": "felt"
+            },
+            {
+                "name": "row_5",
+                "type": "felt"
+            },
+            {
+                "name": "row_6",
+                "type": "felt"
+            },
+            {
+                "name": "row_7",
+                "type": "felt"
+            },
+            {
+                "name": "row_8",
+                "type": "felt"
+            },
+            {
+                "name": "row_9",
+                "type": "felt"
+            },
+            {
+                "name": "row_10",
+                "type": "felt"
+            },
+            {
+                "name": "row_11",
+                "type": "felt"
+            },
+            {
+                "name": "row_12",
+                "type": "felt"
+            },
+            {
+                "name": "row_13",
+                "type": "felt"
+            },
+            {
+                "name": "row_14",
+                "type": "felt"
+            },
+            {
+                "name": "row_15",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
