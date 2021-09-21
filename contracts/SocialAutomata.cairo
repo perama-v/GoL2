@@ -290,7 +290,8 @@ func activate_cell{
     # 000...0100100001010 Stored.
     # 000...0100101001010 Selected OR Stored.
     #                 ^ index 2
-    let (local bit) = pow(2, col)
+    let binary_position = DIM - col
+    let (local bit) = pow(2, binary_position)
     let (stored) = row_binary.read(row)
     let (updated) = bitwise_or(bit, stored)
     row_binary.write(row, updated)
@@ -326,11 +327,14 @@ func pack_cols{
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
 
-    # col=0 goes in LSB. col=DIM goes in MSB.
+
     # Get index of cell in cell_state for this row-col combo.
     # "Move 'row length' blocks down list, then add the column index".
-    let index = row * DIM + col-1
+    let index = row * DIM + (col - 1)
     let state = cell_states[index]
+
+    # col=0 goes in MSB. col=DIM goes in LSB.
+    let binary_position = DIM - (col - 1)
     # 000...00000000011 row_to_store (old aggregator)
     # 000...00000001000 cell_binary (cell state)
     # 000...00000001011 bitwise OR (new aggregator)
@@ -339,12 +343,12 @@ func pack_cols{
     # E.g., For index-0: 1 * 2**0 = 0b1
     # E.g., For index-2: 1 * 2**2 = 0b100
 
-    let (bit) = pow(2, col - 1)
+    let (bit) = pow(2, binary_position)
     let cell_binary = state * bit
     # store = store OR row_binary
-    let (row_to_store) = bitwise_or(cell_binary, row_to_store)
+    let (new_row) = bitwise_or(cell_binary, row_to_store)
 
-    return (row_to_store)
+    return (new_row)
 end
 
 # Post-sim. Walk rows then columns to store state.
