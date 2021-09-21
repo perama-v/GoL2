@@ -68,26 +68,27 @@ func run{
         range_check_ptr
     }(
         rounds : felt,
-        alter_cell : felt
+        give_life_row_index : felt,
+        give_life_column_index : felt
     ) -> (
-        val0 : felt, # testing.
-        val1 : felt,
-        val2 : felt
+        first_init : felt, # testing.
+        last_init : felt,
+        sample_new : felt
     ):
     alloc_locals
+    # Unpack the stored game
     # Iterate over rows, then cols to get an array of all cells.
-    let (cell_states : felt*) = alloc()
-    let (cell_states : felt*) = unpack_rows(cell_states=cell_states,
-        row=DIM)
-
-    let (cell_states) = evaluate(rounds, cell_states)
-
-    let (local cell_states) = apply_player_action(cell_states,
-        alter_cell)
-
+    let (local cell_states_init : felt*) = alloc()
+    unpack_rows(cell_states=cell_states_init,row=DIM)
+    local first_cell : felt = cell_states_init[0]
+    local last_cell : felt = cell_states_init[DIM*DIM - 1]
+    # Run the game for the specified rounds.
+    let (local cell_states : felt*) = evaluate_rounds(rounds, cell_states_init)
+    # Pack the game for storage.
     pack_rows(cell_states, row=DIM)
 
-    return (cell_states[0], cell_states[1], cell_states[2])
+    activate_cell(give_life_row_index, give_life_column_index)
+    return (first_cell, last_cell, cell_states[3])
 end
 
 @view
@@ -132,28 +133,26 @@ func unpack_cols{
         row : felt,
         col : felt,
         stored_row : felt
-    ) -> (
-        cell_states : felt*
     ):
     alloc_locals
     if col == 0:
-        return (cell_states)
+        return ()
     end
 
-    let (cell_states) = unpack_cols(cell_states=cell_states,
+    unpack_cols(cell_states=cell_states,
         row=row, col=col-1, stored_row=stored_row)
-
+    # (Note, on first entry, col=1 so col-1 gets the index)
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
     local storage_ptr : Storage* = storage_ptr
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     # state = 2**column_index AND row_binary
-    let (mask) = pow(2, col)
+    let (mask) = pow(2, col-1)
     let (state) = bitwise_and(stored_row, mask)
-    let index = row * DIM + col
+    let index = row * DIM + col-1
     assert cell_states[index] = state
 
-    return (cell_states)
+    return ()
 end
 
 # Pre-sim. Walk rows then columns to build state.
@@ -165,48 +164,47 @@ func unpack_rows{
     }(
         cell_states : felt*,
         row : felt
-    ) -> (
-        cell_states: felt*
     ):
     if row == 0:
-        return (cell_states)
+        return ()
     end
 
-    let (cell_states) = unpack_rows(cell_states=cell_states,
-        row=row-1)
+    unpack_rows(cell_states=cell_states, row=row-1)
     # Get the binary encoded store.
-    let (stored_row) = row_binary.read(row=row)
-    let (cell_states) = unpack_cols(cell_states=cell_states,
-        row=row, col=DIM, stored_row=stored_row)
+    # (Note, on first entry, row=1 so row-1 gets the index)
+    let (stored_row) = row_binary.read(row=row-1)
+    unpack_cols(cell_states=cell_states,
+        row=row-1, col=DIM, stored_row=stored_row)
 
-    return (cell_states)
+    return ()
 end
 
 # Executes rounds and returns an array with final state.
-func evaluate{
+func evaluate_rounds{
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
         rounds : felt,
-        cell_states : felt*,
+        cell_states : felt*
     ) -> (
         cell_states : felt*
     ):
+    alloc_locals
     if rounds == 0:
-        return(cell_states)
+        return(cell_states=cell_states)
     end
-    let (cell_states) = evaluate(rounds=rounds-1,
-        cell_states=cell_states)
 
-    # Build pending.
-    let (pending_states : felt*) = alloc()
-    let (pending_states) = apply_rules(cell=DIM*DIM,
-        cell_states=cell_states, pending_states=pending_states)
+    let (cell_states) = evaluate_rounds(rounds=rounds-1, cell_states=cell_states)
 
-    # Return the pending state as canonical.
-    return (pending_states)
+    let (local pending_states : felt*) = alloc()
+    # Fill up pending_states based on cell_states and GoL rules
+    apply_rules(cell=DIM*DIM, cell_states=cell_states,
+        pending_states=pending_states)
+
+    # Return the pending states as canonical.
+    return (cell_states=pending_states)
 end
 
 func apply_rules{
@@ -218,29 +216,31 @@ func apply_rules{
         cell : felt,
         cell_states : felt*,
         pending_states : felt*
-    ) -> (
-        pending_states : felt*
     ):
     alloc_locals
     if cell == 0:
-        return(pending_states)
+        return ()
     end
 
-    let (local pending_states) = apply_rules(cell=cell-1,
-        cell_states=cell_states, pending_states=pending_states)
+    apply_rules(cell=cell-1, cell_states=cell_states,
+        pending_states=pending_states)
 
+    # (Note, on first entry, cell=1 so cell-1 gets the index)
+    local cell_idx = cell - 1
+
+    #local cell_states : felt* = cell_states
     local storage_ptr : Storage* = storage_ptr
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
 
 
-    let (row, col) = unsigned_div_rem(cell, DIM)
+    let (row, col) = unsigned_div_rem(cell_idx, DIM)
     let len = DIM * DIM
     # Wrap around: Index neihbours using modulo array length.
-    let (_, L) = unsigned_div_rem(cell - 1 + len, len)
-    let (_, R) = unsigned_div_rem(cell + 1, len)
-    let (_, D) = unsigned_div_rem(cell + DIM, len)
-    let (_, U) = unsigned_div_rem(cell - DIM + len, len)
+    let (_, L) = unsigned_div_rem(cell_idx - 1 + len, len)
+    let (_, R) = unsigned_div_rem(cell_idx + 1, len)
+    let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
+    let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
     let (_, LU) = unsigned_div_rem(U - 1 + len, len)
     let (_, RU) = unsigned_div_rem(U + 1, len)
     let (_, LD) = unsigned_div_rem(D - 1 + len, len)
@@ -253,43 +253,49 @@ func apply_rules{
         cell_states[LU] + cell_states[RU] +
         cell_states[LD] + cell_states[RD]
 
-    # 1 if True.
-    let alive = cell_states[cell] ###
-    let thrive = 1 - (score - 2) * (score - 3)
-    let revive = 1 - score - 3
-
     # Final outcome
-    let pending_states : felt* = pending_states
-    assert pending_states[cell] = 0
 
-
-    if alive + thrive == 2:
-        assert pending_states[cell] = 1
+    assert pending_states[cell_idx] = 0
+    # If alive
+    if cell_states[cell_idx] == 1:
+        # With good neighbours
+        if (score - 2) * (score - 3) == 0:
+            # Live
+            assert pending_states[cell_idx] = 1
+        end
     else:
-        if revive == 1:
-            assert pending_states[cell] = 1
+        if score == 3:
+            assert pending_states[cell_idx] = 1
         end
     end
 
-    return (pending_states)
+    return ()
 end
 
 # User input may override state to make a cell alive.
-func apply_player_action{
+func activate_cell{
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        cell_states : felt*,
-        alter_cell : felt
-    ) -> (
-        cell_states : felt*
+        row : felt,
+        col : felt
     ):
-    # Wrap around if need.
-    let (_, alter_cell) = unsigned_div_rem(alter_cell, DIM*DIM)
-    assert cell_states[alter_cell] = 1
-    return (cell_states)
+    alloc_locals
+    # Wrap around if chosen value out of range.
+    let (_, local row) = unsigned_div_rem(row, DIM)
+    let (_, col) = unsigned_div_rem(col, DIM)
+    # 000...0000001000000 Selected bit (column) for this row.
+    # 000...0100100001010 Stored.
+    # 000...0100101001010 Selected OR Stored.
+    #                 ^ index 2
+    let (local bit) = pow(2, col)
+    let (stored) = row_binary.read(row)
+    let (updated) = bitwise_or(bit, stored)
+    row_binary.write(row, updated)
+
+    return ()
 end
 
 # Post-sim. Walk columns for a given row and saves array to state.
@@ -310,21 +316,33 @@ func pack_cols{
     if col == 0:
         return (row_to_store)
     end
-
-    let (row_to_store) = pack_cols(cell_states=cell_states,
+    # Loops over columns, adding to a single felt using a mask.
+    let (local row_to_store) = pack_cols(cell_states=cell_states,
         row=row, col=col-1, row_to_store=row_to_store)
-
+    # (Note, on first entry, col=1 so col-1 gets the index)
 
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
     local storage_ptr : Storage* = storage_ptr
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
 
-    let index = row * DIM + col
+    # col=0 goes in LSB. col=DIM goes in MSB.
+    # Get index of cell in cell_state for this row-col combo.
+    # "Move 'row length' blocks down list, then add the column index".
+    let index = row * DIM + col-1
     let state = cell_states[index]
-    # store = 2**column_index OR row_binary
-    let (mask) = pow(2, col)
-    let (row_to_store) = bitwise_or(state, mask)
+    # 000...00000000011 row_to_store (old aggregator)
+    # 000...00000001000 cell_binary (cell state)
+    # 000...00000001011 bitwise OR (new aggregator)
+
+    # Binary = state * bit = state * 2**column_index
+    # E.g., For index-0: 1 * 2**0 = 0b1
+    # E.g., For index-2: 1 * 2**2 = 0b100
+
+    let (bit) = pow(2, col - 1)
+    let cell_binary = state * bit
+    # store = store OR row_binary
+    let (row_to_store) = bitwise_or(cell_binary, row_to_store)
 
     return (row_to_store)
 end
@@ -344,11 +362,11 @@ func pack_rows{
     end
 
     pack_rows(cell_states=cell_states, row=row-1)
-
+    # (Note, on first entry, row=1 so row-1 gets the index)
     # Create the binary encoded state for the row.
     let (row_to_store) = pack_cols(cell_states=cell_states,
-        row=row, col=DIM, row_to_store=0)
-    row_binary.write(row=row, value=row_to_store)
+        row=row-1, col=DIM, row_to_store=0)
+    row_binary.write(row=row-1, value=row_to_store)
 
     return ()
 end
