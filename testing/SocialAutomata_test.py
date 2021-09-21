@@ -31,10 +31,11 @@ async def test_record_items():
         contract_address=contract_address,
     )
     n_steps = 1
-    alter_cell = 0
+    alter_row = 0
+    alter_col = 3
     await contract.spawn().invoke()
     image_0 = await contract.view_game().invoke()
-    test = await contract.run(n_steps, alter_cell).invoke()
+    test = await contract.run(n_steps, alter_row, alter_col).invoke()
     print('test',test)
     image_1 = await contract.view_game().invoke()
 
@@ -61,3 +62,4 @@ async def test_record_items():
     1010100011101110
     '''
     assert image_0 != image_1
+    assert 1==2
