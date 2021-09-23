@@ -40,7 +40,10 @@ async def test_record_items():
     image_1 = await contract.view_game().invoke()
 
 
-    print("image_2:")
+    print("image_0:")
+    [print(format(image_0[row], '#018b').replace('0b','')) for row in range(16)]
+
+    print("image_1:")
     [print(format(image_1[row], '#018b').replace('0b','')) for row in range(16)]
 
     '''

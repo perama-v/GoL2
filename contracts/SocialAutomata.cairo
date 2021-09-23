@@ -147,10 +147,21 @@ func unpack_cols{
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     # state = 2**column_index AND row_binary
-    let (mask) = pow(2, col-1)
+    # Column zero is the MSB, so (DIM_index - col_index) accesses the bit.
+    let binary_position = (DIM - 1) - (col - 1)
+    let (mask) = pow(2, binary_position)
     let (state) = bitwise_and(stored_row, mask)
-    let index = row * DIM + col-1
-    assert cell_states[index] = state
+    # E.g., if in col_index 2, for an alive 'state=4 (0b100)',
+    # convert to 1
+    local alive_or_dead
+    if state == 0:
+        assert alive_or_dead = 0
+    else:
+        assert alive_or_dead = 1
+    end
+    let index = row * DIM + (col - 1)
+    assert cell_states[index] = alive_or_dead
+
 
     return ()
 end
