@@ -65,4 +65,4 @@ async def test_record_items():
     1010100011101110
     '''
     assert image_0 != image_1
-    assert 1==2
+    #assert 1==2

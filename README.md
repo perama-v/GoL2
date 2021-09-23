@@ -87,7 +87,7 @@ pytest testing/SocialAutomata_test.py
 ### Deploy
 
 ```
-starknet deploy --contract SocialAutomata_compiled.json \
+starknet deploy --contract contracts/SocialAutomata_compiled.json \
     --network=alpha
 ```
 Upon deployment, the CLI will return an address, which can be used
@@ -99,20 +99,20 @@ CLI - Write
 ```
 starknet invoke \
     --network=alpha \
-    --address CONTRACT_ADDRESS \
-    --abi SocialAutomata_contract_abi.json \
+    --address 0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81 \
+    --abi abi/SocialAutomata_contract_abi.json \
     --function run \
-    --inputs 1 0
+    --inputs 1 0 0
 ```
 CLI - Read
 ```
 starknet call \
     --network=alpha \
-    --address CONTRACT_ADDRESS \
-    --abi SocialAutomata_contract_abi.json \
+    --address 0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81 \
+    --abi abi/SocialAutomata_contract_abi.json \
     --function view_game
 ```
-Or with the Voyager browser [here](https://voyager.online/contract/CONTRACT_ADDRESS#writeContract).
+Or with the Voyager browser [here](https://voyager.online/contract/0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81).
 
 ## Notes
 
