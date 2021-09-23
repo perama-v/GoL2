@@ -265,19 +265,22 @@ func apply_rules{
         cell_states[LD] + cell_states[RD]
 
     # Final outcome
-
-    assert pending_states[cell_idx] = 0
     # If alive
     if cell_states[cell_idx] == 1:
         # With good neighbours
         if (score - 2) * (score - 3) == 0:
             # Live
             assert pending_states[cell_idx] = 1
+        else:
+            assert pending_states[cell_idx] = 0
         end
     else:
         if score == 3:
             assert pending_states[cell_idx] = 1
+        else:
+            assert pending_states[cell_idx] = 0
         end
+
     end
 
     return ()
