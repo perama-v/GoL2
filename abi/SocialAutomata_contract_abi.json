@@ -12,22 +12,26 @@
                 "type": "felt"
             },
             {
-                "name": "alter_cell",
+                "name": "give_life_row_index",
+                "type": "felt"
+            },
+            {
+                "name": "give_life_column_index",
                 "type": "felt"
             }
         ],
         "name": "run",
         "outputs": [
             {
-                "name": "val0",
+                "name": "first_init",
                 "type": "felt"
             },
             {
-                "name": "val1",
+                "name": "last_init",
                 "type": "felt"
             },
             {
-                "name": "val2",
+                "name": "sample_new",
                 "type": "felt"
             }
         ],
