@@ -57,8 +57,8 @@ async def test_record_items():
 
     ##### Game progression tests #####
     n_steps = 1
-    alter_row = 0
-    alter_col = 3
+    alter_row = 5
+    alter_col = 5
     await contract.spawn().invoke()
     image_0 = await contract.view_game().invoke()
     test = await contract.run(n_steps, alter_row, alter_col).invoke()
@@ -85,7 +85,10 @@ async def test_record_items():
         for row in range(16)
     ]
 
-    assert image_1[0] == 0
+    # Test the manually flipped bit
+    assert image_1[alter_row] == 2**(16-alter_col)
+
+    # Fails, shape should be left one.
     assert image_1[12] == 0
     assert image_1[13] == int('1110110',2)
     assert image_1[14] == int(    '110',2)
