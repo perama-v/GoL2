@@ -13,7 +13,6 @@ from starkware.starknet.common.storage import Storage
 # Width of the simulation grid.
 const DIM = 16
 
-
 @storage_var
 func spawned() -> (bool : felt):
 end
@@ -83,7 +82,8 @@ func run{
     local first_cell : felt = cell_states_init[0]
     local last_cell : felt = cell_states_init[DIM*DIM - 1]
     # Run the game for the specified rounds.
-    let (local cell_states : felt*) = evaluate_rounds(rounds, cell_states_init)
+    let (local cell_states : felt*) = evaluate_rounds(
+        rounds, cell_states_init)
     # Pack the game for storage.
     pack_rows(cell_states, row=DIM)
 
@@ -218,6 +218,7 @@ func evaluate_rounds{
     return (cell_states=pending_states)
 end
 
+# Steps through every cell, checking neighbour states.
 func apply_rules{
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
@@ -236,26 +237,15 @@ func apply_rules{
     apply_rules(cell=cell-1, cell_states=cell_states,
         pending_states=pending_states)
 
-    # (Note, on first entry, cell=1 so cell-1 gets the index)
+    # (Note, on first entry, cell=1 so cell-1 gets the index).
     local cell_idx = cell - 1
 
-    #local cell_states : felt* = cell_states
     local storage_ptr : Storage* = storage_ptr
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
 
-
-    let (row, col) = unsigned_div_rem(cell_idx, DIM)
-    let len = DIM * DIM
-    # Wrap around: Index neihbours using modulo array length.
-    let (_, L) = unsigned_div_rem(cell_idx - 1 + len, len)
-    let (_, R) = unsigned_div_rem(cell_idx + 1, len)
-    let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
-    let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
-    let (_, LU) = unsigned_div_rem(U - 1 + len, len)
-    let (_, RU) = unsigned_div_rem(U + 1, len)
-    let (_, LD) = unsigned_div_rem(D - 1 + len, len)
-    let (_, RD) = unsigned_div_rem(D + 1, len)
+    # Get indices of neighbours.
+    let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx)
 
     local range_check_ptr = range_check_ptr
     # Sum of 8 surrounding cells.
@@ -285,6 +275,74 @@ func apply_rules{
 
     return ()
 end
+
+@external
+func get_adjacent{
+        range_check_ptr
+    }(
+        cell_idx : felt
+    ) -> (
+        L : felt,
+        R : felt,
+        U : felt,
+        D : felt,
+        LU : felt,
+        RU : felt,
+        LD : felt,
+        RD : felt
+    ):
+    # cell_states and pending_states structure:
+    #         Row 0               Row 1              Row 2
+    #  <-------DIM-------> <-------DIM-------> <-------DIM------->
+    # [0,0,0,0,1,...,1,0,1,0,1,1,0,...,1,0,0,1,1,1,0,1...,0,0,1,0...]
+    #  ^col_0     col_DIM^ ^col_0     col_DIM^ ^col_0
+    let (row, col) = unsigned_div_rem(cell_idx, DIM)
+    let len = DIM * DIM
+    let row_start = row * DIM
+    # LU U RU
+    # L  .  R
+    # LD D RD
+    # Wrap around: Index neighbours using modulo.
+
+    # For a neighbour moving left and wrapping around:
+    # 1. Move left by one (cell_idx - 1).
+    # 2. Move to range [0, DIM] (- row_start).
+    # 3. Add DIM to make positive (+ DIM).
+    # 4. Take modulo DIM to keep in range [0, DIM] (% DIM).
+    # 5. Add row for index of wrapped neighbour (+ row_start).
+    let (_, L) = unsigned_div_rem(cell_idx - 1 - row_start + DIM,
+        DIM)
+    let L = L + row_start
+
+    # Moving right and wrapping around from the left:
+    # 1. Move right by one (cell_idx + 1).
+    # 2. Move to range [0, DIM] (- row_start).
+    # 3. Take modulo DIM to keep in range [0, DIM] (% DIM).
+    # 4. Add row for index of wrapped neighbour (+ row_start).
+    let (_, R) = unsigned_div_rem(cell_idx + 1 - row_start, DIM)
+    let R = R + row_start
+
+    # Moving down and wrapping down from the top:
+    # 1. Move down by one (cell_idx + DIM).
+    # 2. If beyond len, wrap (% len).
+    let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
+
+    # Moving up and wrapping up from bottom:
+    # 1. Move up by one (cell_idx - DIM).
+    # 2. Add len to make positive if above grid (+ len).
+    # 3. Modulo len (% len).
+    let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
+
+    # First take L or R position and then apply U or D operation.
+    let (_, LU) = unsigned_div_rem(L - DIM + len, len)
+    let (_, RU) = unsigned_div_rem(R - DIM + len, len)
+    let (_, LD) = unsigned_div_rem(L + DIM, len)
+    let (_, RD) = unsigned_div_rem(R + DIM, len)
+
+    return (L=L, R=R, U=U, D=D, LU=LU, RU=RU, LD=LD,
+        RD=RD)
+end
+
 
 # User input may override state to make a cell alive.
 func activate_cell{

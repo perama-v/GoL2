@@ -11,8 +11,41 @@ CONTRACT_FILE = os.path.join(
     os.path.dirname(__file__), "../contracts/SocialAutomata.cairo")
 
 
-# The testing library uses python's asyncio. So the following
-# decorator and the ``async`` keyword are needed.
+@pytest.mark.asyncio
+async def check_neighbour_calc():
+    # Compile the contract.
+    contract_definition = compile_starknet_files(
+        [CONTRACT_FILE], debug_info=True)
+
+    # Create a new Starknet class that simulates StarkNet
+    starknet = await Starknet.empty()
+
+    # Deploy the contract.
+    contract_address = await starknet.deploy(
+        contract_definition=contract_definition)
+    contract = StarknetContract(
+        starknet=starknet,
+        abi=contract_definition.abi,
+        contract_address=contract_address,
+    )
+    DIM = 16
+    top_left = 0
+    (TL) = await contract.get_adjacent(
+        top_left).invoke()
+    print('TL',TL)
+    assert TL.R == 1
+    assert TL.L == DIM
+
+    top_right = DIM
+    (TR) = await contract.get_adjacent(
+        top_left).invoke()
+    print('TR',TR)
+    assert TR.R == 0
+    assert TR.L == DIM - 1
+
+    # TODO add more tests here.
+
+
 @pytest.mark.asyncio
 async def test_record_items():
     # Compile the contract.
@@ -39,13 +72,23 @@ async def test_record_items():
     print('test',test)
     image_1 = await contract.view_game().invoke()
 
-
+    # For an even grid appearance:
+    # .replace('1','■ ').replace('0','. ')
     print("image_0:")
-    [print(format(image_0[row], '#018b').replace('0b','')) for row in range(16)]
+    [
+        print(format(image_0[row], '#018b').replace('0b',''))
+        for row in range(16)
+    ]
 
     print("image_1:")
-    [print(format(image_1[row], '#018b').replace('0b','')) for row in range(16)]
-
+    [
+        print(format(image_1[row], '#018b').replace('0b',''))
+        for row in range(16)
+    ]
+    [
+        print(format(image_1[row]))
+        for row in range(16)
+    ]
     '''
     0111111001001101
     1101010011001000
@@ -65,4 +108,3 @@ async def test_record_items():
     1010100011101110
     '''
     assert image_0 != image_1
-    #assert 1==2

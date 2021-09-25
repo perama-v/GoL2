@@ -81,7 +81,7 @@ starknet-compile contracts/SocialAutomata.cairo \
 ### Test
 
 ```
-pytest testing/SocialAutomata_test.py
+pytest -s testing/SocialAutomata_test.py
 ```
 
 ### Deploy
