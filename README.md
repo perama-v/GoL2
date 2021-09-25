@@ -58,7 +58,7 @@ row[1]
 ...
 row[dim] = 1000110001010100
 ```
-Calling `view_game()` will produce 8 numbers in decimal representation, which
+Calling `view_game()` will produce `dim` numbers in decimal representation, which
 can be rendered as binary (e.g., in the console).
 
 ## Parameters
