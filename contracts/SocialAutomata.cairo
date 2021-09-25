@@ -405,8 +405,9 @@ func pack_cols{
     let index = row * DIM + (col - 1)
     let state = cell_states[index]
 
-    # col=0 goes in MSB. col=DIM goes in LSB.
-    let binary_position = DIM - (col - 1)
+
+    # col=0 goes in MSB. col=DIM-1 goes in LSB.
+    let binary_position = DIM - (col - 1) - 1
     # 000...00000000011 row_to_store (old aggregator)
     # 000...00000001000 cell_binary (cell state)
     # 000...00000001011 bitwise OR (new aggregator)
