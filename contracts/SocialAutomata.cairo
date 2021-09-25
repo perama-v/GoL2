@@ -37,24 +37,24 @@ func spawn{
     if has_spawned == 1:
         return ()
     end
-    # Start with a 16x16 methuselah.
-    # https://conwaylife.com/wiki/49768M
-    row_binary.write(0, 32333)
-    row_binary.write(1, 54472)
-    row_binary.write(2, 1043)
-    row_binary.write(3, 19359)
-    row_binary.write(4, 53186)
-    row_binary.write(5, 35818)
-    row_binary.write(6, 55429)
-    row_binary.write(7, 4183)
-    row_binary.write(8, 64213)
-    row_binary.write(9, 32877)
-    row_binary.write(10, 18501)
-    row_binary.write(11, 50706)
-    row_binary.write(12, 45093)
-    row_binary.write(13, 1293)
-    row_binary.write(14, 60929)
-    row_binary.write(15, 43246)
+    # Start with an acorn near bottom right in a 16x16 grid.
+    # https://www.conwaylife.com/patterns/acorn.cells
+    row_binary.write(0, 0)
+    row_binary.write(1, 0)
+    row_binary.write(2, 0)
+    row_binary.write(3, 0)
+    row_binary.write(4, 0)
+    row_binary.write(5, 0)
+    row_binary.write(6, 0)
+    row_binary.write(7, 0)
+    row_binary.write(8, 0)
+    row_binary.write(9, 0)
+    row_binary.write(10, 0)
+    row_binary.write(11, 0)
+    row_binary.write(12, 32)
+    row_binary.write(13, 8)
+    row_binary.write(14, 103)
+    row_binary.write(15, 0)
     spawned.write(1)
     return ()
 end

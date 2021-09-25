@@ -12,57 +12,50 @@ CONTRACT_FILE = os.path.join(
 
 
 @pytest.mark.asyncio
-async def check_neighbour_calc():
-    # Compile the contract.
-    contract_definition = compile_starknet_files(
-        [CONTRACT_FILE], debug_info=True)
+async def test_record_items():
 
     # Create a new Starknet class that simulates StarkNet
     starknet = await Starknet.empty()
 
     # Deploy the contract.
-    contract_address = await starknet.deploy(
-        contract_definition=contract_definition)
-    contract = StarknetContract(
-        starknet=starknet,
-        abi=contract_definition.abi,
-        contract_address=contract_address,
-    )
+    contract = await starknet.deploy(CONTRACT_FILE)
+
+    ##### Wrapping tests #####
     DIM = 16
     top_left = 0
-    (TL) = await contract.get_adjacent(
-        top_left).invoke()
+    top_right = DIM - 1
+    bottom_right = DIM * DIM - 1
+    bottom_left = DIM * DIM - DIM
+    # Test wrapping at all four corners.
+    (TL) = await contract.get_adjacent(top_left).invoke()
     print('TL',TL)
     assert TL.R == 1
-    assert TL.L == DIM
+    assert TL.L == top_right
+    assert TL.LU == bottom_right
+    assert TL.U == bottom_left
 
-    top_right = DIM
-    (TR) = await contract.get_adjacent(
-        top_left).invoke()
+    (TR) = await contract.get_adjacent(top_right).invoke()
     print('TR',TR)
-    assert TR.R == 0
-    assert TR.L == DIM - 1
+    assert TR.R == top_left
+    assert TR.L == top_right - 1
+    assert TR.U == bottom_right
+    assert TR.RU == bottom_left
 
-    # TODO add more tests here.
+    (BR) = await contract.get_adjacent(bottom_right).invoke()
+    print('BR',BR)
+    assert BR.R == bottom_left
+    assert BR.L == bottom_right - 1
+    assert BR.D == top_right
+    assert BR.RD == top_left
 
+    (BL) = await contract.get_adjacent(bottom_left).invoke()
+    print('BL',BL)
+    assert BL.R == bottom_left + 1
+    assert BL.L == bottom_right
+    assert BL.D == top_left
+    assert BL.LD == top_right
 
-@pytest.mark.asyncio
-async def test_record_items():
-    # Compile the contract.
-    contract_definition = compile_starknet_files(
-        [CONTRACT_FILE], debug_info=True)
-
-    # Create a new Starknet class that simulates StarkNet
-    starknet = await Starknet.empty()
-
-    # Deploy the contract.
-    contract_address = await starknet.deploy(
-        contract_definition=contract_definition)
-    contract = StarknetContract(
-        starknet=starknet,
-        abi=contract_definition.abi,
-        contract_address=contract_address,
-    )
+    ##### Game progression tests #####
     n_steps = 1
     alter_row = 0
     alter_col = 3
@@ -76,35 +69,25 @@ async def test_record_items():
     # .replace('1','■ ').replace('0','. ')
     print("image_0:")
     [
-        print(format(image_0[row], '#018b').replace('0b',''))
+        print(format(image_0[row], '#018b').replace('0b','')
+        .replace('1','■ ').replace('0','. '))
         for row in range(16)
     ]
 
     print("image_1:")
     [
-        print(format(image_1[row], '#018b').replace('0b',''))
+        print(format(image_1[row], '#018b').replace('0b','')
+        .replace('1','■ ').replace('0','. '))
         for row in range(16)
     ]
     [
         print(format(image_1[row]))
         for row in range(16)
     ]
-    '''
-    0111111001001101
-    1101010011001000
-    0000010000010011
-    0100101110011111
-    1100111111000010
-    1000101111101010
-    1101100010000101
-    0001000001010111
-    1111101011010101
-    1000000001101101
-    0100100001000101
-    1100011000010010
-    1011000000100101
-    0000010100001101
-    1110111000000001
-    1010100011101110
-    '''
-    assert image_0 != image_1
+
+    assert image_1[0] == 0
+    assert image_1[12] == 0
+    assert image_1[13] == int('1110110',2)
+    assert image_1[14] == int(    '110',2)
+    assert image_1[15] == int(     '10',2)
+
