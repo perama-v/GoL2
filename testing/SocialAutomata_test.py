@@ -86,7 +86,7 @@ async def test_record_items():
     ]
 
     # Test the manually flipped bit
-    assert image_1[alter_row] == 2**(16-alter_col)
+    assert image_1[alter_row] == 2**(DIM - 1 - alter_col)
 
     # Fails, shape should be left one.
     assert image_1[12] == 0

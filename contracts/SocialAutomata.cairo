@@ -362,7 +362,7 @@ func activate_cell{
     # 000...0100100001010 Stored.
     # 000...0100101001010 Selected OR Stored.
     #                 ^ index 2
-    let binary_position = DIM - col
+    let binary_position = DIM - 1 - col
     let (local bit) = pow(2, binary_position)
     let (stored) = row_binary.read(row)
     let (updated) = bitwise_or(bit, stored)
