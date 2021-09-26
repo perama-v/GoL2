@@ -19,15 +19,15 @@
     {
         "inputs": [
             {
-                "name": "cell_row_index",
+                "name": "give_life_row_index",
                 "type": "felt"
             },
             {
-                "name": "cell_column_index",
+                "name": "give_life_column_index",
                 "type": "felt"
             }
         ],
-        "name": "give_life_to_cell",
+        "name": "give_life",
         "outputs": [],
         "type": "function"
     },
