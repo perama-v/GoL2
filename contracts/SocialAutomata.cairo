@@ -10,8 +10,9 @@ from starkware.cairo.common.pow import pow
 from starkware.starknet.common.storage import Storage
 
 
+
 # Width of the simulation grid.
-const DIM = 16
+const DIM = 32
 
 @storage_var
 func spawned() -> (bool : felt):
@@ -37,28 +38,18 @@ func spawn{
     if has_spawned == 1:
         return ()
     end
-    # Start with an acorn near bottom right in a 16x16 grid.
+    # Start with an acorn near bottom right in a 32x32 grid.
     # https://www.conwaylife.com/patterns/acorn.cells
-    row_binary.write(0, 0)
-    row_binary.write(1, 0)
-    row_binary.write(2, 0)
-    row_binary.write(3, 0)
-    row_binary.write(4, 0)
-    row_binary.write(5, 0)
-    row_binary.write(6, 0)
-    row_binary.write(7, 0)
-    row_binary.write(8, 0)
-    row_binary.write(9, 0)
-    row_binary.write(10, 0)
-    row_binary.write(11, 0)
+    # https://playgameoflife.com/lexicon/acorn
     row_binary.write(12, 32)
     row_binary.write(13, 8)
     row_binary.write(14, 103)
-    row_binary.write(15, 0)
     spawned.write(1)
+    #deploy.token_contract()
     return ()
 end
 
+# Progresses the game by a chosen number of generations
 @external
 func run{
         storage_ptr : Storage*,
@@ -66,29 +57,44 @@ func run{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        rounds : felt,
-        give_life_row_index : felt,
-        give_life_column_index : felt
-    ) -> (
-        first_init : felt, # testing.
-        last_init : felt,
-        sample_new : felt
+        generations : felt
     ):
     alloc_locals
+    # Set limit to ten generations per turn (arbirtary cap).
+    let (_, local generations) = unsigned_div_rem(generations, 10)
     # Unpack the stored game
     # Iterate over rows, then cols to get an array of all cells.
     let (local cell_states_init : felt*) = alloc()
     unpack_rows(cell_states=cell_states_init,row=DIM)
     local first_cell : felt = cell_states_init[0]
     local last_cell : felt = cell_states_init[DIM*DIM - 1]
-    # Run the game for the specified rounds.
+    # Run the game for the specified number of generations.
     let (local cell_states : felt*) = evaluate_rounds(
-        rounds, cell_states_init)
+        generations, cell_states_init)
     # Pack the game for storage.
     pack_rows(cell_states, row=DIM)
 
-    activate_cell(give_life_row_index, give_life_column_index)
-    return (first_cell, last_cell, cell_states[3])
+    # Give live token
+
+    return ()
+end
+
+# Give life to a specific cell.
+@external
+func give_life_to_cell{
+        storage_ptr : Storage*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        cell_row_index : felt,
+        cell_column_index : felt
+    ):
+    # This does not trigger an evolution. Multiple give_life
+    # operations may be called, building up a shape before
+    # a turn triggers evolution.
+    activate_cell(cell_row_index, cell_column_index)
+    return ()
 end
 
 @view
@@ -100,7 +106,11 @@ func view_game{
         row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
         row_4 : felt, row_5 : felt, row_6 : felt, row_7 : felt,
         row_8 : felt, row_9 : felt, row_10 : felt, row_11 : felt,
-        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt
+        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt,
+        row_16 : felt, row_17 : felt, row_18 : felt, row_19 : felt,
+        row_20 : felt, row_21 : felt, row_22 : felt, row_23 : felt,
+        row_24 : felt, row_25 : felt, row_26 : felt, row_27 : felt,
+        row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
     ):
     let (row_0) = row_binary.read(0)
     let (row_1) = row_binary.read(1)
@@ -118,9 +128,31 @@ func view_game{
     let (row_13) = row_binary.read(13)
     let (row_14) = row_binary.read(14)
     let (row_15) = row_binary.read(15)
-    return (row_0, row_1, row_2, row_3, row_4, row_5, row_6, row_7,
-        row_8, row_9, row_10, row_11, row_12, row_13, row_14, row_15)
+    let (row_16) = row_binary.read(16)
+    let (row_17) = row_binary.read(17)
+    let (row_18) = row_binary.read(18)
+    let (row_19) = row_binary.read(19)
+    let (row_20) = row_binary.read(20)
+    let (row_21) = row_binary.read(21)
+    let (row_22) = row_binary.read(22)
+    let (row_23) = row_binary.read(23)
+    let (row_24) = row_binary.read(24)
+    let (row_25) = row_binary.read(25)
+    let (row_26) = row_binary.read(26)
+    let (row_27) = row_binary.read(27)
+    let (row_28) = row_binary.read(28)
+    let (row_29) = row_binary.read(29)
+    let (row_30) = row_binary.read(30)
+    let (row_31) = row_binary.read(31)
+
+    return (row_0, row_1, row_2, row_3, row_4, row_5,
+        row_6, row_7, row_8, row_9, row_10, row_11,
+        row_12, row_13, row_14, row_15, row_16, row_17,
+        row_18, row_19, row_20, row_21, row_22, row_23,
+        row_24, row_25, row_26, row_27, row_28, row_29,
+        row_30, row_31)
 end
+
 
 # Pre-sim. Walk columns for a given row and saves state to an array.
 func unpack_cols{

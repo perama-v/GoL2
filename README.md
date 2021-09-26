@@ -1,15 +1,34 @@
 # Social Automata
+
 Cellular automata on replicated state machine.
 An implementation of Conway's Game of Life as a contract on StarkNet, written
-in Cairo.
+in Cairo, with an interactive element.
 
 Players can alter the state of the game, affecting the future of the simulation.
 People may create interesting states or coordinate with others to achieve some
 outcome of interest.
 
+This implementation is novel in that the game state shared (agreed by all) and permissionless
+(anyone may participate). The game rules are enforced by a validity proof, which means that
+no one can evolve the game using different rules.
+
+There are three rules in this implementation:
+
+- The normal rules of Conways' Game of Life (3 to revive, 2 or 3 to stay alive).
+- The boundaries wrap - a glider may travel infinitely within the confines of the grid.
+- A user who plays gains a special power - to revive a single cell at their discretion.
+
+The game may flourish and produce a myriad of diverse game states, or it may fall to ruin and
+become a barren wasteland. It will be up to the participants to decide if and when to use
+their life-giving power. What will become of the
+
+|Acorn generation 0|Acorn generation 1|
+|:--: | :--:|
+| ![acorn-0](img/acorn_0.png)| ![acorn-0](img/acorn_1.png) |
+
 # Architecture
 
-A contract that holds the state of Conway's Game of life. Players may call the contract,
+A contract that holds the state of Conway's Game of Life. Players may call the contract,
 with an `alter_cell` command. This causes the simulation to progress and for the new state to
 be stored.
 
@@ -21,11 +40,14 @@ be stored.
     - Each row is stored as a felt in storage. (`dim` storage updates per interaction)
 - When the contract is called with `run(rounds, alter_cell)`, it
     1. Runs the simulation for `rounds`.
-    2. Applies `alter_cell`, manually giving live to the specified cell(s).
+    2. *Applies `alter_cell`, manually giving live to the specified cell(s).
     3. Saves the new state to storage.
 - Anyone can call the contract with the `view_game` call which will display the current
 saved state of the game.
 - Cells wrap around.
+
+*Note: The `alter_cell` will be moved from `run` to a separate action a user can perform
+another time.
 
 ## Operation
 
@@ -45,18 +67,29 @@ saved state of the game.
     4. After final cell is read, change the array to point at the new neighbour array
     `cell_states=next_state`.
 - Repeat simulation for `rounds`.
-- Apply `alter_cell`.
-- Recreate the binary representation of each row and save with saved_cells.write(row)
+- Recreate the binary representation of each row and save with `saved_cells.write(row)`.
+- Issue a `life_giver` token to the user. The token bears the image that they helped
+create during the current turn (as an artistic memento).
+- An event is emitted, containing the tokenID of the user and the number of steps progressed. Listening to this event will allow the offchain animation of the game
+for a UI (e.,g the intervening steps may be inferred from the rules of the game
+and any known `give_life()` events).
 
+In another operation, the user may use their token:
+
+- A user calls  `give_life(row_index, col_index)`.
+- The current row is read from storage.
+- The column is applied with a bitwise AND mask to the row.
+- The row is saved to storage.
+- An event is emitted containing the altered cell and the users tokenID.
 
 ## Example storage
 
-Storage: store 16 rows as binary alive/dead
+Storage: store `DIM` rows as binary alive/dead
 ```
-row[0] = 0100110010100101
+row[0] = 01001100101001010100110010100101   (as a felt: 1285901477).
 row[1]
 ...
-row[dim] = 1000110001010100
+row[dim] = 10001100010101001001010100110010   (as a felt: 2354353458).
 ```
 Calling `view_game()` will produce `dim` numbers in decimal representation, which
 can be rendered as binary (e.g., in the console).
@@ -64,14 +97,23 @@ can be rendered as binary (e.g., in the console).
 ## Parameters
 
 ```
-dim = 16 (max 250)
-cell_count = dim**2 (256)
+dim = 32 (max 250)
+cell_count = dim**2 (e.g., 1024 cells if DIM=32)
 ```
 
 ## Dev
 
+    pip install cairo-nile
+
+Install Cairo-lang (e.g., 0.4.1)
+
+    nile install 0.4.1
+
 ### Compile
 
+    nile compile
+
+Or:
 ```
 starknet-compile contracts/SocialAutomata.cairo \
     --output contracts/SocialAutomata_compiled.json \
@@ -80,6 +122,7 @@ starknet-compile contracts/SocialAutomata.cairo \
 
 ### Test
 
+(not currently set up with `nile test`)
 ```
 pytest -s testing/SocialAutomata_test.py
 ```
@@ -95,25 +138,81 @@ to interact with.
 
 ### Interact
 
-CLI - Write
+Spawn the game (on-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81 \
+    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
     --abi abi/SocialAutomata_contract_abi.json \
-    --function run \
-    --inputs 1 0 0
+    --function spawn
 ```
-CLI - Read
+View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address 0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81 \
+    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
     --abi abi/SocialAutomata_contract_abi.json \
     --function view_game
+
+Returns the spawned Acorn, situated mid-right):
+0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Which decoded as bin(32), bin(8) and bin(103) take the acorn form:
+   100000
+     1000
+  1100111
 ```
-Or with the Voyager browser [here](https://voyager.online/contract/0x05fa1b004e741af53524e185207c47c7d8c064c7b77ae413e9a10572b20f3b81).
+Run for one generation.
+```
+starknet invoke \
+    --network=alpha \
+    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
+    --abi abi/SocialAutomata_contract_abi.json \
+    --function run \
+    --inputs 1
+```
+Calling `view_game` again yields the correct next generation:
+```
+0 0 0 0 0 0 0 0 0 0 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Or:
+  1110110
+      110
+       10
+```
+
+Make a particular cell (row index `9` and column index `9`) become alive
+(not yet metered by token-authority).
+```
+starknet invoke \
+    --network=alpha \
+    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
+    --abi abi/SocialAutomata_contract_abi.json \
+    --function give_life_to_cell \
+    --inputs 9 9
+
+Returns the addion of a single cell at the tenth row/col:
+0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Tenth row: 00000000010000000000000000000000
+```
+This single cell would die out in the next generation, and so would not be a
+wise placement, unless other cells are placed in adjacent locations.
+
+## Voyager
+
+Interact using the Voyager browser [here](https://voyager.online/contract/0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4).
 
 ## Notes
 
-
+- Todo
+    - Think about how the game will be rendered. Could have a basic python
+    script to draw the grid in the command line as a start. Currently have the grid-based representation implemented in `pytest`.
+    - Think about which/where events are best utilized.
+    - Connect to user authentification
+    - Implement ERC-721 to hold the unique 'receipt of participation'
+    - Restrict the `give_life_to_cell` function to token holders only and
+    restrict quantity of this action per person.
+    - Assess the size of the grid. With wrapping 32 feels okay, giving
+    1024 cells. More size increases the chance that the grid is 'hard to keep alive'
+    for the participants. Too small and it may be too dense for interesting activity.

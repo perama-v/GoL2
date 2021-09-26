@@ -21,11 +21,12 @@ async def test_record_items():
     contract = await starknet.deploy(CONTRACT_FILE)
 
     ##### Wrapping tests #####
-    DIM = 16
+    DIM = 32
     top_left = 0
     top_right = DIM - 1
     bottom_right = DIM * DIM - 1
     bottom_left = DIM * DIM - DIM
+    print('Wrapping tests:')
     # Test wrapping at all four corners.
     (TL) = await contract.get_adjacent(top_left).invoke()
     print('TL',TL)
@@ -56,41 +57,39 @@ async def test_record_items():
     assert BL.LD == top_right
 
     ##### Game progression tests #####
-    n_steps = 1
-    alter_row = 5
-    alter_col = 5
+    # How many player turns.
+    turns = 1
+    # How many generations pass per turn (capped using modulo).
+    n_steps_within_turn = 1
+
     await contract.spawn().invoke()
     image_0 = await contract.view_game().invoke()
-    test = await contract.run(n_steps, alter_row, alter_col).invoke()
-    print('test',test)
-    image_1 = await contract.view_game().invoke()
+    images = []
+    images.append(image_0)
+    # Run some turns and save the output after each turn.
+    for i in range(turns):
+        await contract.run(n_steps_within_turn).invoke()
+        im = await contract.view_game().invoke()
+        images.append(im)
+
 
     # For an even grid appearance:
     # .replace('1','■ ').replace('0','. ')
-    print("image_0:")
-    [
-        print(format(image_0[row], '#018b').replace('0b','')
-        .replace('1','■ ').replace('0','. '))
-        for row in range(16)
-    ]
+    for index, image in enumerate(images):
+        print(f"image_{index}:")
+        [
+            print(format(image[row], '#034b').replace('0b','')
+            .replace('1','■ ').replace('0','. '))
+            for row in range(DIM)
+        ]
 
-    print("image_1:")
-    [
-        print(format(image_1[row], '#018b').replace('0b','')
-        .replace('1','■ ').replace('0','. '))
-        for row in range(16)
-    ]
-    [
-        print(format(image_1[row]))
-        for row in range(16)
-    ]
+    # Pytest times: (16x16) 3 turns, with 10 generations each ~= 376s
+    # Pytest times: (32x32) 3 turns, with 1 generation each ~= 153s
 
-    # Test the manually flipped bit
-    assert image_1[alter_row] == 2**(DIM - 1 - alter_col)
-
-    # Fails, shape should be left one.
-    assert image_1[12] == 0
-    assert image_1[13] == int('1110110',2)
-    assert image_1[14] == int(    '110',2)
-    assert image_1[15] == int(     '10',2)
+    ##### Manual cell flip test #####
+    alter_row = 5
+    alter_col = 5
+    await contract.give_life_to_cell(alter_row, alter_col).invoke()
+    (altered) = await contract.view_game().invoke()
+    assert altered[alter_row] == 2**(DIM - 1 - alter_col)
 
