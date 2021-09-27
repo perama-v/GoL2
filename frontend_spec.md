@@ -107,6 +107,8 @@ The game is emitted with a binary encoding, with one number per
 row in the game. Each bit (starting with the least significant bit)
 represents a columns (e.g. the first bit represents column zero).
 
+The 32x32 cell grid may be constructed from the presence of a `1`
+(alive cell in blue) or a `0` (dead cell in grey).
 
 ## Interactive features
 
@@ -205,7 +207,8 @@ in an animation, stepping through the intermediate steps of the game
 Until the final state is reached.
 ```
 TBC: To save the front-end from having to implement the game, the
-contract could also emit the intermediate game states.
+contract could also emit the intermediate game states. Perhaps site
+caches past states server-side for quick navigation.
 ```
 
 ## Branding and theme:
