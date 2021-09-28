@@ -2,20 +2,10 @@
 
 ### Project title
 
-TBC
+GoL2
 
-```
-WIP Title ideas:
-    - Something desert-based (GoL is life-or-death)
-        - Eastern Deserts (Near Cairo: Eastern desert).
-        - New Desert
-        - People's Desert
-    - Social Automata (perhaps not fun enough)
-    - Shared Game of Life
-    - CellNet
-    - Cairows
-    - GOL2 (Game of L2)
-```
+Game of Life, a Game on L2.
+
 ## Project description
 
 A single-page website for viewing and interacting with a blockchain-based
@@ -75,6 +65,8 @@ to change the display.
 
 ```
 TBC: Specifics of web-server and node-server architecture.
+
+Currently the StarkNet node is being built.
 ```
 
 ## Source of state updates
@@ -124,8 +116,14 @@ A minimum set of buttons must include:
 The function of each button is as follows:
 
 ### Button: `connect_wallet`
+
+This allows the website to know the account address of the user. The
+address is used to find the game tokens they own and display them.
 ```
 TBC - supported wallet list. E.g., Wallet-Connect, Metamask.
+
+While wallet integration is pending a 'connect_address' button can be
+used where the user manually pastes their address.
 ```
 ### Button: `view_game`
 
@@ -145,6 +143,10 @@ will submit the transaction to StarkNet via that connected StarkNet
 node.
 ```
 TBC: Creation of correctly formatted transaction for signing by wallet.
+
+Fallback: While wallet integration is pending, the interface could produce some
+text that the user could submit, such as through the StarkNet CLI or Voyager
+explorer.
 ```
 
 ### Button: `give_life`
@@ -154,10 +156,10 @@ a specific cell of interest to the player.
 
 Options include:
 
-    - Allow the user to hover-and-click on the grid over the current
+- Allow the user to hover-and-click on the grid over the current
 up-to-date game state.
-    - Allow the user to type a row and column index, which then
-    is visually confirmed by the display.
+- Allow the user to type a row and column index, which then
+is visually confirmed by the display.
 
 The user must select a cell in the grid, the page then creates
 a transaction that is then passed to the wallet. The user will
@@ -166,6 +168,8 @@ will submit the transaction to StarkNet via that connected StarkNet
 node.
 ```
 TBC: Creation of correctly formatted transaction for signing by wallet.
+
+Fallback: Same as for 'evolve_game' button.
 ```
 
 ### Button: `explore_game`
@@ -222,7 +226,8 @@ StarkNet colour scheme may be applied to the
 Logos indicating the underlying technologies should be displayed
 at the bottom of the page.
 
-- StarkNet logos are available in this [media package](https://drive.google.com/drive/folders/101RtufQ_DwE1F2skbmyaywDJ1po80QCk)
+- StarkNet logos are available in this 
+[media package](https://drive.google.com/drive/folders/101RtufQ_DwE1F2skbmyaywDJ1po80QCk)
 - Ethereum logos e.g., "ETH logo landscape (gray)" are available in
 this [media package](https://ethereum.org/en/assets/)
 
@@ -236,7 +241,7 @@ Option 1:
 - Image
     - The current game state
 - Text
-    - "A shared and collaborative Game of Life as a Cairo contract on StarkNet."
+    - "This is GoL2, live. A collaborative Game of Life as a Cairo contract on StarkNet."
 - Site link (url)
 
 Option 2:
@@ -244,7 +249,7 @@ Option 2:
 - Image
     - The state associated with one of the tokens of the user.
 - Text
-    - "I helped evolve the Game of Life on StarkNet. Join us and shape the future!"
+    - "I helped evolve the GoL2, the Game of Life on StarkNet. Join us and shape the future!"
 - Site link (url)
 
 
