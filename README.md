@@ -32,22 +32,22 @@ A contract that holds the state of Conway's Game of Life. Players may call the c
 with an `alter_cell` command. This causes the simulation to progress and for the new state to
 be stored.
 
-- Square with side length `dim`, (E.g., dim = 16) containing `dim**2` cells.
+- Square with side length `dim`, (E.g., dim = 16) containing `dim**2` cells. Cells wrap around
+edges.
 - Every cell is in storage as alive or dead.
     - Storage is the costly bottleneck.
     - A row of cells will be stored as a binary number of length `dim` (max `dim` is
     limited to 250 bit due to field size).
     - Each row is stored as a felt in storage. (`dim` storage updates per interaction)
-- When the contract is called with `run(rounds, alter_cell)`, it
-    1. Runs the simulation for `rounds`.
-    2. *Applies `alter_cell`, manually giving live to the specified cell(s).
-    3. Saves the new state to storage.
+- When the contract is called with `evolve_generations(number_of_generations)`, it
+    1. Runs the simulation for `number_of_generations`.
+    2. Saves the new state to storage.
+    3. Saves the generation.
+    4. Issues an `Warden` NFT to the player.
 - Anyone can call the contract with the `view_game` call which will display the current
 saved state of the game.
-- Cells wrap around.
-
-*Note: The `alter_cell` will be moved from `run` to a separate action a user can perform
-another time.
+- Anyone with a `Warden` token may call `give_life_to_cell` once per token to
+revive a chosen cell.
 
 ## Operation
 
@@ -66,10 +66,13 @@ another time.
     3. Save result to `next_state` array.
     4. After final cell is read, change the array to point at the new neighbour array
     `cell_states=next_state`.
-- Repeat simulation for `rounds`.
+- Repeat simulation for `number_of_generations`.
 - Recreate the binary representation of each row and save with `saved_cells.write(row)`.
-- Issue a `life_giver` token to the user. The token bears the image that they helped
-create during the current turn (as an artistic memento).
+- Issue a `warden` token to the user. The token has a generation ID that is tied
+to the history of the game. The events emitted by the game contract will contain
+the generation ID and the image of the game at the end of that turn. In this way,
+the token bears the image that they helped create during the current turn
+(as an artistic memento).
 - An event is emitted, containing the tokenID of the user and the number of steps progressed. Listening to this event will allow the offchain animation of the game
 for a UI (e.,g the intervening steps may be inferred from the rules of the game
 and any known `give_life()` events).
@@ -81,6 +84,22 @@ In another operation, the user may use their token:
 - The column is applied with a bitwise AND mask to the row.
 - The row is saved to storage.
 - An event is emitted containing the altered cell and the users tokenID.
+
+## Token contract ownership model
+
+The game contract is the `only_owner` of the token contract - the mint
+function can only be called by the game contract.
+
+When the game contract `spawn` function is called, the address of the
+token contract is passed as an argument. The `spawn` function calls
+`initialize` on the token contract. This causes the token contract
+to store the address of the calling contract (the game contract) as
+the owner. From then onwards, the game contract may mint a token
+for a player at will.
+
+When the game contract mints a token for a player it will pass the
+account address of the player to the token contract. The token
+contract records their address as the owner for that token.
 
 ## Example storage
 
@@ -115,22 +134,22 @@ Install Cairo-lang (e.g., 0.4.1)
 
 Or:
 ```
-starknet-compile contracts/SocialAutomata.cairo \
-    --output contracts/SocialAutomata_compiled.json \
-    --abi abi/SocialAutomata_contract_abi.json
+starknet-compile contracts/GoL2.cairo \
+    --output contracts/GoL2_compiled.json \
+    --abi abi/GoL2_contract_abi.json
 ```
 
 ### Test
 
 (not currently set up with `nile test`)
 ```
-pytest -s testing/SocialAutomata_test.py
+pytest -s test/GoL2_test.py
 ```
 
 ### Deploy
 
 ```
-starknet deploy --contract contracts/SocialAutomata_compiled.json \
+starknet deploy --contract contracts/GoL2_compiled.json \
     --network=alpha
 ```
 Upon deployment, the CLI will return an address, which can be used
@@ -143,7 +162,7 @@ Spawn the game (on-off operation).
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/SocialAutomata_contract_abi.json \
+    --abi abi/GoL2_contract_abi.json \
     --function spawn
 ```
 View the game state (as a list of 32 binary-encoded values).
@@ -151,7 +170,7 @@ View the game state (as a list of 32 binary-encoded values).
 starknet call \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/SocialAutomata_contract_abi.json \
+    --abi abi/GoL2_contract_abi.json \
     --function view_game
 
 Returns the spawned Acorn, situated mid-right):
@@ -167,7 +186,7 @@ Run for one generation.
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/SocialAutomata_contract_abi.json \
+    --abi abi/GoL2_contract_abi.json \
     --function run \
     --inputs 1
 ```
@@ -187,7 +206,7 @@ Make a particular cell (row index `9` and column index `9`) become alive
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/SocialAutomata_contract_abi.json \
+    --abi abi/GoL2_contract_abi.json \
     --function give_life_to_cell \
     --inputs 9 9
 
@@ -213,6 +232,5 @@ Interact using the Voyager browser [here](https://voyager.online/contract/0x03f2
     - Implement ERC-721 to hold the unique 'receipt of participation'
     - Restrict the `give_life_to_cell` function to token holders only and
     restrict quantity of this action per person.
-    - Assess the size of the grid. With wrapping 32 feels okay, giving
-    1024 cells. More size increases the chance that the grid is 'hard to keep alive'
-    for the participants. Too small and it may be too dense for interesting activity.
+
+

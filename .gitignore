@@ -1,6 +1,6 @@
 # StarkNet / Cairo
 *_compiled.json
-
+artifacts/
 /.vscode
 
 # Byte-compiled / optimized / DLL files
