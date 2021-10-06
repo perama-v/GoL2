@@ -63,8 +63,17 @@ end
 
 ##### Events #####
 # TODO
-# user-specific
-# global
+# Candidate Events are included in the code with the tag 'Event here:'
+
+## user-specific ##
+# Token-related: Mint, transfer
+
+## global ##
+# new_state(user_id, new_gen_id, new_game_state)
+# live_given(user_id, cell_row, cell_col)
+#
+#
+
 ##################
 
 ##### Public functions #####

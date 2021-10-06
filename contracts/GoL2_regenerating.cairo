@@ -88,9 +88,13 @@ func row_binary(
 end
 
 ##### Events #####
-# TODO
-# user-specific
-# global
+# GamePlayed(user_id, game_state_data_struct)
+#    Used
+# Token minted/transferred
+#
+#
+#
+
 ##################
 
 ##### Public functions #####
