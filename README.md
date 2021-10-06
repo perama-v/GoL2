@@ -136,7 +136,7 @@ Or:
 ```
 starknet-compile contracts/GoL2.cairo \
     --output contracts/GoL2_compiled.json \
-    --abi artifacts/abi/GoL2_contract_abi.json
+    --abi artifacts/abis/GoL2_contract_abi.json
 ```
 
 ### Test
@@ -162,7 +162,7 @@ Spawn the game (on-off operation).
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/GoL2_contract_abi.json \
+    --abi artifacts/abis/GoL2_contract_abi.json \
     --function spawn
 ```
 View the game state (as a list of 32 binary-encoded values).
@@ -170,7 +170,7 @@ View the game state (as a list of 32 binary-encoded values).
 starknet call \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/GoL2_contract_abi.json \
+    --abi artifacts/abis/GoL2_contract_abi.json \
     --function view_game
 
 Returns the spawned Acorn, situated mid-right):
@@ -186,7 +186,7 @@ Run for one generation.
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/GoL2_contract_abi.json \
+    --abi artifacts/abis/GoL2_contract_abi.json \
     --function run \
     --inputs 1
 ```
@@ -206,7 +206,7 @@ Make a particular cell (row index `9` and column index `9`) become alive
 starknet invoke \
     --network=alpha \
     --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi abi/GoL2_contract_abi.json \
+    --abi artifacts/abis/GoL2_contract_abi.json \
     --function give_life_to_cell \
     --inputs 9 9
 
@@ -222,7 +222,9 @@ wise placement, unless other cells are placed in adjacent locations.
 
 Interact using the Voyager browser [here](https://voyager.online/contract/0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4).
 
-## Notes
+---
+
+# Notes
 
 - Todo
     - Think about how the game will be rendered. Could have a basic python
@@ -232,39 +234,3 @@ Interact using the Voyager browser [here](https://voyager.online/contract/0x03f2
     - Implement ERC-721 to hold the unique 'receipt of participation'
     - Restrict the `give_life_to_cell` function to token holders only and
     restrict quantity of this action per person.
-
----
-
-## Simplified alternate version
-
-To experiment with a different model `GoL2_regenerating.cairo` was made.
-It does not store the game state. All users choose a generation and mint from
-the same spawn point. The contract produces the image and stores their address.
-
-Later a token could be minted from the recorded addresses.
-
-There is no manual intervention and the game can be thought of as
-'pick a special number and claim the image associated with that generation'.
-
-```
-starknet-compile contracts/GoL2_regenerating.cairo \
-    --output artifacts/GoL2_regenerating_compiled.json \
-    --abi artifacts/abis/GoL2_regenerating_contract_abi.json
-
-starknet deploy --contract artifacts/GoL2_regenerating_compiled.json \
-    --network=alpha
-
-Deploy transaction was sent.
-Contract address: 0x024edd90cad683d43b39e99c4bb6712722ab1d2c85b39c6299683b6cee3f92ce
-Transaction ID: 247625
-
-starknet invoke \
-    --network=alpha \
-    --address 0x024edd90cad683d43b39e99c4bb6712722ab1d2c85b39c6299683b6cee3f92ce \
-    --abi artifacts/abis/GoL2_regenerating_contract_abi.json \
-    --function spawn
-
-Invoke transaction was sent.
-Contract address: 0x024edd90cad683d43b39e99c4bb6712722ab1d2c85b39c6299683b6cee3f92ce
-Transaction ID: 247629
-```

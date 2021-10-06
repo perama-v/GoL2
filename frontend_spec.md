@@ -44,6 +44,42 @@ the gride along the same row. The same applies to top-bottom edges.
 - Players may perform a manual intervention to make one cell in the
 become alive.
 
+## Game progression
+
+To 'play' a user sends a transaction to evolve the game of life.
+They may choose to evolve it one generation, or multiple generations,
+with a cap at some number (e.g., maximum 5 or 10 generations).
+
+Several players might sequentially create the following scenario from
+the starting generation (gen_1):
+
+- Game_spawn: gen_1 (the acorn)
+- Alice: gen_2 (acorn +1)
+- Bob: gen_3 (acorn +2)
+- Carol: gen_7 (acorn +6)
+- Dave: gen_8 (acorn +7)
+
+The action of Carol was to evolve by 4 generations, bringing the state
+to generation 7. She mints a single token (ID 7) just like the other players.
+
+The second aspect of 'play' is to manually alter one cell. This does not
+increase the generation, and can only be performed by redeeming an
+existing game token. In the example below, Alice and Bob revive adjacent
+cells before Elle's turn. Elle evolves 1 then Fred evolves 6.
+
+- Game_spawn: gen_1 (the acorn)
+- Alice: gen_2 (acorn +1)
+- Bob: gen_3 (acorn +2)
+- Carol: gen_7 (acorn +6)
+- Dave: gen_8 (acorn +7)
+- Bob: revive (row=4, col=5) gen_8 (acorn +7 with one revived cell)
+- Alice: revive (row=3, col=5) gen_8 (acorn +7 with two revived cells)
+- Elle: gen_9 (two-cells-revived state above +1)
+- Fred: gen_15 (gen_9 +6)
+
+The game has now diverged from the generic Acorn state through the actions
+of Alice and Bob.
+
 ## Visual style:
 
 Elements of the website should include:
@@ -62,6 +98,27 @@ state of the StarkNet network and will monitor for changes to a
 particular set of contracts specific to the game. The website server
 will listen for messages from the node and use that information
 to change the display.
+
+The contract will be sent transactions that change the state.
+The plan for the final architecture is to have a system that is very
+close to the Event-listener model that Ethereum contracts have.
+
+At the moment, Events are not available. The frontend can currently
+access the contract state by calling a `@View` function to retrieve state
+from storage.
+
+The user sends their transaction as an `@External` function.
+This does not return any values immediately because the transaction
+must be mined.
+
+A server looking to build up the state of the game could look
+at the transactions that have been included in blocks and independently
+recreate the game state by replaying the same actions.
+
+The current game state is stored in the contract and can be fetched
+with the `@View` function `view_game()`, which returns 32 numbers,
+each representing the 32 column states for one row. This can be used to
+corroborate with the independently-generated game state.
 
 ```
 TBC: Specifics of web-server and node-server architecture.
@@ -131,7 +188,7 @@ This displays the main game at the most up to date state.
 
 ### Button: `view_tokens`
 
-This shows a collection of tokens that the user created by previoulsy
+This shows a collection of tokens that the user created by previously
 participating in evolving the game.
 
 ### Button: `evolve_game`
@@ -186,6 +243,63 @@ This could included a slider for altering the speed of the display.
 given life, or an on/off toggle to highlight these cells during
 exploration of historical states.
 
+## Token
+
+A token represents a static snapshot in the history of the game. It has
+multiple purposes:
+
+    - An record of evolution participation.
+    - A ticket to manually alter one cell in the future.
+    - A way to associated a user to a generation, so that the front end
+    can show the user the generation they participated in.
+    - A way to associate a user to a manual cell alteration, so that the front end
+    can show the user the generation they revived a cell in.
+
+The NFT URI will likely be a simple record of the generation_ID, rather than a pointer to an IPFS JPG/AVI. Any interface for the game (such as the website) can be used to display the image for the NFT by supplying the token_ID/generation_ID.
+
+A game front end can use the token in different ways, either:
+
+- Either the static image of the game at that point in time
+- A short looping animation of a few frames leading up to that point in time,
+pausing at their generation for a bit, then restarting the loop.
+
+When can tokens be minted: They can only be minted moving forward from the tip
+of the game. They cannot be minted for historical states.
+
+## Example token minting sequence
+
+
+If the current generation is 543 and the user evolves the game by 7, then they will receive the token with ID corresponding to 560. A third party passively watching the game on the website will see the game tick forward 7 times.
+
+```
+gen_543 ------> alice_adds_7 ------> gen_550
+                             ------> token_550_to_alice
+
+The fronted receives the emitted event and updates to display.
+    GenerationEvent(user_id_of_alice, new_state_550)
+
+Third party view:
+gen_543_1_sec -> gen_544_1_sec -> (etc.) -> gen_549_1_sec ->
+gen_550_5_sec -> Back to 543
+```
+From Alice's view, she also sees that she owns `token_550`.
+
+Bob is a user who minted an older generation and holds `token_245`.
+He now chooses to make a cell alive at row 5, column 17. The generation
+does not increase.
+
+```
+gen_550 ------> bob_alive_5_17 ------> gen_550
+
+The fronted receives the emitted event and updates to display.
+    AliveEvent(user_id_of_bob, row_5, col_17)
+
+Third party view, now the revived cell is added to the loop:
+gen_543_1_sec -> gen_544_1_sec -> (etc.) -> gen_549_1_sec ->
+gen_550_1_sec -> gen_550_with_orange_5_sec -> Back to 543
+```
+
+
 ## Animation
 
 The game visual style aims to mimic a simple organism that is
@@ -213,6 +327,14 @@ Until the final state is reached.
 TBC: To save the front-end from having to implement the game, the
 contract could also emit the intermediate game states. Perhaps site
 caches past states server-side for quick navigation.
+
+E.g., Carol progresses the game from generation 340 to 350.
+
+The current plan is to emit the state at 350. States 341, 342, etc.
+can be calculated off-chain for display.
+
+The game could potentially emit intermediate states 341, 342, etc.
+This depends on how the Events feature works (cost etc.).
 ```
 
 ## Branding and theme:
@@ -226,7 +348,7 @@ StarkNet colour scheme may be applied to the
 Logos indicating the underlying technologies should be displayed
 at the bottom of the page.
 
-- StarkNet logos are available in this 
+- StarkNet logos are available in this
 [media package](https://drive.google.com/drive/folders/101RtufQ_DwE1F2skbmyaywDJ1po80QCk)
 - Ethereum logos e.g., "ETH logo landscape (gray)" are available in
 this [media package](https://ethereum.org/en/assets/)
