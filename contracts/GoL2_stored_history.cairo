@@ -22,24 +22,7 @@ const DIM = 32
 # Maximum number of steps a single turn can evolve the game by.
 const max_steps = 5
 
-##### Interfaces #####
-@contract_interface
-namespace IERC721GoLWarden:
-    func mint(
-        recipient : felt,
-        amount : felt
-    ):
-    end
-    func initialize_token():
-    end
-end
-
 ##### Storage #####
-# Returns the address of the NFT token contract.
-@storage_var
-func token_address() -> (address : felt):
-end
-
 # Returns whether the game has started (bool=1) or not (bool=0).
 @storage_var
 func spawned() -> (bool : felt):
@@ -66,7 +49,6 @@ end
 @storage_var
 func index_at_generation(gen_id) -> (gen_index : felt):
 end
-
 
 # A store of the sequence of redemptions for walking the history.
 @storage_var
@@ -106,13 +88,13 @@ end
 
 # Records the history of the game on chain.
 # Could pack this more efficiently (E.g., 1/4 storage if packed).
-@storage
+@storage_var
 func historical_row(
         gen_id : felt,
         row_index : felt
     ) -> (
-        row_state : felt)
-    :
+        row_state : felt
+    ):
 end
 
 # Temporary function (pending Events) to keep track of give_life.
@@ -135,9 +117,7 @@ func spawn{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }(
-        address_of_token_contract : felt
-    ):
+    }():
     let (has_spawned) = spawned.read()
     if has_spawned == 1:
         return ()
@@ -150,8 +130,6 @@ func spawn{
     historical_row.write(1, 14, 103)
     # Set the current generation as '1'.
     current_generation.write(1)
-    # Save the address of the accompanying token contract.
-    token_address.write(address_of_token_contract)
     # Prevent entry to this function again.
     spawned.write(1)
     # Generation index=0 will be saved as the first gen (gen_id=1).
@@ -194,6 +172,7 @@ func evolve_generations{
     current_generation.write(new_gen)
 
     # To expose information to the frontend (pending Token/Events).
+    let (user) = get_caller_address()
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
     generation_of_owner.write(user, prev_tokens + 1, new_gen)
@@ -223,25 +202,38 @@ func give_life_to_cell{
     # This does not trigger an evolution. Multiple give_life
     # operations may be called, building up a shape before
     # a turn triggers evolution.
+    alloc_locals
+
+    # Only the caller can redeem
+    let (user) = get_caller_address()
+    let (owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
+
+    # Enable this check when accounts are used.
+    # TODO: assert owner - user = 0
+
     activate_cell(cell_row_index, cell_column_index)
 
     # Temporary record pending Events.
     let (current_gen) = current_generation.read()
     let (redeemed) = token_redeemed_at.read(gen_id_of_token_to_redeem)
     # Assumption: storage is initialized as zero.
-    assert_not_zero(redeemed)
-    let (user) = get_caller_address()
+
+    # Enable this check when accounts are used.
+    # TODO: assert_not_zero(redeemed)
+
     token_gave_life.write(gen_id_of_token_to_redeem,
         (cell_row_index, cell_column_index))
     token_redeemed_at.write(gen_id_of_token_to_redeem, current_gen)
-
 
     # Index the redemption for simpler database creation.
     let (redemptions) = redemption_count.read()
     redemption_count.write(redemptions + 1)
     # New redemption index = count - 1 + 1 = count
-    token_at_redemption_index.write(redemptions) -> (current_gen):
-    redemption_index_of_token.write(current_gen) -> (redemptions):
+    token_at_redemption_index.write(redemptions, current_gen)
+    redemption_index_of_token.write(current_gen, redemptions)
+
+
+
     return ()
 end
 
@@ -308,7 +300,8 @@ func latest_give_life_index{
         redemption_index : felt
     ):
     let (red_index) = redemption_count.read()
-    return (red_id - 1)
+    # Index is: count - 1
+    return (red_index - 1)
 end
 
 
@@ -556,7 +549,7 @@ func unpack_rows{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        gen_id : felt
+        gen_id : felt,
         cell_states : felt*,
         row : felt
     ):
@@ -564,10 +557,10 @@ func unpack_rows{
         return ()
     end
 
-    unpack_rows(cell_states=cell_states, row=row-1)
+    unpack_rows(gen_id=gen_id, cell_states=cell_states, row=row-1)
     # Get the binary encoded store.
     # (Note, on first entry, row=1 so row-1 gets the index)
-    let (stored_row) = historical_row.read(gen_id, row=row-1)
+    let (stored_row) = historical_row.read(gen_id, row-1)
     unpack_cols(cell_states=cell_states,
         row=row-1, col=DIM, stored_row=stored_row)
 
@@ -730,6 +723,7 @@ end
 
 # User input may override state to make a cell alive.
 func activate_cell{
+        syscall_ptr : felt*,
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,

@@ -23,8 +23,7 @@ const max_steps = 5
 @contract_interface
 namespace IERC721GoLWarden:
     func mint(
-        recipient : felt,
-        amount : felt
+        recipient : felt, amount : felt
     ):
     end
     func initialize_token():
