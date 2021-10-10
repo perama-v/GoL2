@@ -57,6 +57,10 @@ async def test_game_flow(game_factory):
         await game.evolve_generations(
             USER_IDS[turn], gens_per_turn[turn]).invoke()
         (index, id) = await game.current_index_and_id().call()
+        # TODO investigate error.
+        # Error at pc=0:170:\nError: End of program was not reached
+        # locs.exp = locs.temp0 / 2; ap++
+
         assert index == turn + 1
         assert id == 1 + (turn + 1) * gens_per_turn[turn]
         im = await game.view_game(id).invoke()
@@ -112,40 +116,6 @@ async def test_give_life(game_factory):
         await game.give_life_to_cell(USER_IDS[0], 4,
             4, user_token_id).invoke()
     print('Passed: Token cannot be redeemed twice')
-
-
-
-
-@pytest.mark.asyncio
-async def test_view_functions(game_factory):
-    _, game, _  = game_factory
-    alter_row = 5
-    alter_col = 5
-    '''
-    token_id_to_redeem = 1
-    (index_pre, id_pre) = await game.current_index_and_id().call()
-    res = await game.give_life_to_cell(
-        alter_row, alter_col, token_id_to_redeem).invoke()
-    (index_pre, id_pre) = await game.current_index_and_id().call()
-    (altered) = await game.view_game(id).call()
-    assert altered[alter_row] == 2**(DIM - 1 - alter_col)
-    display(altered)
-    '''
-
-@pytest.mark.asyncio
-async def test_get_state(game_factory):
-    _, game, _  = game_factory
-    '''
-    alter_row = 5
-    alter_col = 5
-    token_id_to_redeem = 1
-    res = await game.give_life_to_cell(
-        alter_row, alter_col, token_id_to_redeem).invoke()
-    (index, id) = await game.current_index_and_id().call()
-    (altered) = await game.view_game(id).call()
-    assert altered[alter_row] == 2**(DIM - 1 - alter_col)
-    '''
-
 
 
 @pytest.mark.asyncio

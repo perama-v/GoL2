@@ -28,7 +28,7 @@ along the indices.
 
 1. Select a generation id to view using the functions:
 
-    - `current_generation_id()` to get the latest.
+    - `current_index_and_id()` to get the latest.
     - `generation_index_from_id(id)` to see what index an id has.
     - `generation_id_from_index(index)` to get any id by index.
 2. Get the current game state with `view_game(id)`
@@ -86,7 +86,7 @@ starknet-compile contracts/account.cairo \
 
 
 ```
-TODO pytest -s test/GoL2_stored_history_test.py
+pytest -s test/GoL2_stored_history_test.py
 ```
 
 ### Deploy
@@ -96,43 +96,44 @@ starknet deploy --contract contracts/GoL2_stored_history_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
-Contract address: 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142
-Transaction ID: 254371
+Contract address: 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd
+Transaction ID: 260245
 
-starknet tx_status --network=alpha --id=254371
+starknet tx_status --network=alpha --id=260245
 {
-    "block_id": 36977,
-    "tx_status": "PENDING"
+    "block_id": 38762,
+    "tx_status": "ACCEPTED_ONCHAIN"
 }
 
 starknet deploy --contract contracts/account_compiled.json \
     --network=alpha
 
-Deploy transaction was sent.
-Contract address: 0x06f686518d21c6bee5a2b92502eb5c1c0ae93bb24714e552d02ec4dd5b383877
-Transaction ID: 254386
+TODO
 ```
-Upon deployment, the CLI will return an address, which can be used
-to interact with.
 
-### Interact
 
-Spawn the game (on-off operation).
+## Interact
+
+Spawn the game (one-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
-    --function spawn \
-    --inputs 0x06f686518d21c6bee5a2b92502eb5c1c0ae93bb24714e552d02ec4dd5b383877
+    --function spawn
+
+Invoke transaction was sent.
+Contract address: 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd
+Transaction ID: 260279
 ```
 View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
-    --function view_game
+    --function view_game \
+    --inputs 1
 
 Returns the spawned Acorn, situated mid-right):
 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -142,14 +143,18 @@ Which decoded as bin(32), bin(8) and bin(103) take the acorn form:
      1000
   1100111
 ```
-Run for one generation.
+Make user 1 (testing pre-accounts) evolve one generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
-    --function run \
-    --inputs 1
+    --function evolve_generations \
+    --inputs 1 1
+
+Invoke transaction was sent.
+Contract address: 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd
+Transaction ID: 260298
 ```
 Calling `view_game` again yields the correct next generation:
 ```
@@ -161,15 +166,68 @@ Or:
        10
 ```
 
-Make a particular cell (row index `9` and column index `9`) become alive
-(not yet metered by token-authority).
+See how many tokens user 1 has now:
+```
+starknet call \
+    --network=alpha \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
+    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --function user_token_count \
+    --inputs 1
+
+1
+```
+Pull data about their token(s) using the index of each token. E.g., index 0 will access
+the first token for this user. The data returned is: `(token_id, has_used_give_life, generation_during_give_life, alive_cell_row, alive_cell_col)`.
+
+```
+starknet call \
+    --network=alpha \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
+    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --function get_user_data \
+    --inputs 1 0
+
+2 0 0 0 0
+```
+So this user has token_id 2, indicating that it represents generation 2, the
+very next step after the acorn (generaion 1). The other fields indicate it
+has not yet been used to give life.
+
+Make, for user 1, a particular cell (row index `9` and column index `9`) become alive,
+specifying that token id 2 is being redeemed.
+
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
     --function give_life_to_cell \
-    --inputs 9 9
+    --inputs 1 9 9 2
+
+Invoke transaction was sent.
+Contract address: 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd
+Transaction ID: 260321
+```
+
+We can check the current game turn index and generation:
+```
+starknet call \
+    --network=alpha \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
+    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --function current_index_and_id
+1 2
+```
+Thus, there has been one turn and the current generation is 2, as expected.
+The generation can be used to view the game:
+```
+starknet call \
+    --network=alpha \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
+    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --function view_game \
+    --inputs 2
 
 Returns the addion of a single cell at the tenth row/col:
 0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -179,29 +237,45 @@ Tenth row: 00000000010000000000000000000000
 This single cell would die out in the next generation, and so would not be a
 wise placement, unless other cells are placed in adjacent locations.
 
-Check a particular player (every player will be id=0 until accounts deployed)
+Confirm this by having user 23 have a turn, evolving 3 generations:
+```
+starknet invoke \
+    --network=alpha \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
+    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --function evolve_generations \
+    --inputs 23 3
+
+Invoke transaction was sent.
+Contract address: 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd
+Transaction ID: 260335
+
+
+TODO: resolve this
+{
+    "tx_failure_reason": {
+        "code": "OUT_OF_RESOURCES",
+        "error_message": "Error at pc=0:2141:\nError: End of program was not reached",
+        "tx_id": 260335
+    },
+    "tx_status": "REJECTED"
+}
+```
+Check the current game status, expected: it will be turn index 2 (spawn,
+first turn, second turn) and generation 5 (spawn=1, then +1 got to 2, then +3
+makes 5).
 
 ```
 starknet call \
     --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
+    --address 0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
-    --function user_token_count \
-    --inputs 0
-```
-For user_id 0 get the 0th token id
-```
-starknet call \
-    --network=alpha \
-    --address 0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142 \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
-    --function get_user_data \
-    --inputs 0 0
+    --function current_index_and_id
 
 ```
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x06ed3bce51cbb4836b3d0687a4cde6c0bec07db502ac7d88ea4435db8cbf2142).
+Interact using the Voyager browser [here](https://voyager.online/contract/0x046a89e63e4f882c0c2f74c7cef3aeb18a1e05ce69564ce1b20b5bc1f4a146dd).
 
 
 

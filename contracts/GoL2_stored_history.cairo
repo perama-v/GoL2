@@ -119,9 +119,8 @@ func spawn{
         range_check_ptr
     }():
     let (has_spawned) = spawned.read()
-    if has_spawned == 1:
-        return ()
-    end
+    assert has_spawned = 0
+
     # Start with an acorn near bottom right in a 32x32 grid.
     # https://www.conwaylife.com/patterns/acorn.cells
     # https://playgameoflife.com/lexicon/acorn
