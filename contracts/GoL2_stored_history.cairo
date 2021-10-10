@@ -148,6 +148,7 @@ func evolve_generations{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
+        user_id_admintemp : felt,
         number_of_generations : felt
     ):
     alloc_locals
@@ -172,10 +173,14 @@ func evolve_generations{
     current_generation.write(new_gen)
 
     # To expose information to the frontend (pending Token/Events).
-    let (user) = get_caller_address()
+    #let (user) = get_caller_address()
+    # For testing, skip account contract use. TODO add accounts.
+    let user = user_id_admintemp
+
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
-    generation_of_owner.write(user, prev_tokens + 1, new_gen)
+    # Store the token_id as a zero-based index of the uesrs token.
+    generation_of_owner.write(user, prev_tokens, new_gen)
     owner_of_generation.write(new_gen, user)
 
     # Index the current generation for easy fetching.
@@ -195,6 +200,7 @@ func give_life_to_cell{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
+        user_id_admintemp : felt,
         cell_row_index : felt,
         cell_column_index : felt,
         gen_id_of_token_to_redeem : felt
@@ -205,21 +211,22 @@ func give_life_to_cell{
     alloc_locals
 
     # Only the caller can redeem
-    let (user) = get_caller_address()
-    let (owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
+    # let (user) = get_caller_address()
+    # For testing, skip account contract use. TODO add accounts.
+    let user = user_id_admintemp
 
+    let (owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
     # Enable this check when accounts are used.
-    # TODO: assert owner - user = 0
+    assert owner = user
 
     activate_cell(cell_row_index, cell_column_index)
 
     # Temporary record pending Events.
     let (current_gen) = current_generation.read()
-    let (redeemed) = token_redeemed_at.read(gen_id_of_token_to_redeem)
+    let (local redeemed) = token_redeemed_at.read(gen_id_of_token_to_redeem)
     # Assumption: storage is initialized as zero.
-
     # Enable this check when accounts are used.
-    # TODO: assert_not_zero(redeemed)
+    assert redeemed = 0
 
     token_gave_life.write(gen_id_of_token_to_redeem,
         (cell_row_index, cell_column_index))
@@ -232,8 +239,6 @@ func give_life_to_cell{
     token_at_redemption_index.write(redemptions, current_gen)
     redemption_index_of_token.write(current_gen, redemptions)
 
-
-
     return ()
 end
 
@@ -241,7 +246,7 @@ end
 # Returns a the current generation id and generation index.
 # The index is based on turns while the id is evolution steps.
 @view
-func current_generation_id{
+func current_index_and_id{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -425,7 +430,7 @@ func get_user_data{
         user_id : felt,
         nth_token_of_user : felt
     ) -> (
-        generation_during_mint : felt,
+        token_id : felt,
         has_used_give_life : felt,
         generation_during_give_life : felt,
         alive_cell_row : felt,
@@ -442,6 +447,8 @@ func get_user_data{
     local alive_cell_col
     if redeemed == 0:
         assert has_used_give_life = 0
+        assert alive_cell_row = 0
+        assert alive_cell_col = 0
     else:
         assert has_used_give_life = 1
         assert alive_cell_row = alive_cell[0]
@@ -449,7 +456,7 @@ func get_user_data{
     end
 
     return (
-        generation_during_mint=token_id,
+        token_id=token_id,
         has_used_give_life=has_used_give_life,
         generation_during_give_life=redeemed,
         alive_cell_row=alive_cell_row,
@@ -467,7 +474,6 @@ func get_token_data{
     }(
         token_id : felt
     ) -> (
-        generation_during_mint : felt,
         has_used_give_life : felt,
         generation_during_give_life : felt,
         alive_cell_row : felt,
@@ -489,7 +495,6 @@ func get_token_data{
     end
 
     return (
-        generation_during_mint=token_id,
         has_used_give_life=has_used_give_life,
         generation_during_give_life=redeemed,
         alive_cell_row=alive_cell_row,
