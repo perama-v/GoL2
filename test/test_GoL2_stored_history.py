@@ -41,36 +41,34 @@ async def game_factory():
 async def test_game_flow(game_factory):
     # Start with freshly spawned game
     _, game, _ = game_factory
-    (first_index, first_id) = await game.current_index_and_id().call()
-    assert first_index == 0
+    (first_id, ) = await game.current_generation_id().call()
     assert first_id == 1
     ##### Game progression tests #####
-    gens_per_turn = [1, 3, 1, 5, 1, 6]
-    turns = len(gens_per_turn)
+    gens_per_turn = 1
+    turns = 4
     # How many generations pass per turn (capped using modulo).
 
     image_0 = await game.view_game(first_id).invoke()
     images = []
     images.append(image_0)
     # Run some turns and save the output after each turn.
+    prev_id = first_id
     for turn in range(turns):
-        await game.evolve_generations(
-            USER_IDS[turn], gens_per_turn[turn]).invoke()
-        (index, id) = await game.current_index_and_id().call()
-        # TODO investigate error.
-        # Error at pc=0:170:\nError: End of program was not reached
-        # locs.exp = locs.temp0 / 2; ap++
+        await game.evolve_and_claim_next_generation(
+            USER_IDS[turn]).invoke()
 
-        assert index == turn + 1
-        assert id == 1 + (turn + 1) * gens_per_turn[turn]
-        im = await game.view_game(id).invoke()
+        (id, ) = await game.current_generation_id().call()
+
+        im = await game.view_game(id).call()
         images.append(im)
+        assert id == prev_id + gens_per_turn
+        prev_id = id
 
     # For an even grid appearance:
     # .replace('1','■ ').replace('0','. ')
     for index, image in enumerate(images):
         print(f"image_{index}:")
-        display(image)
+        await display(image)
 
 
 @pytest.mark.asyncio
@@ -80,7 +78,7 @@ async def test_give_life(game_factory):
     alter_row = 5
     alter_col = 5
     invalid_token_id = 1
-    (index_pre, id_pre) = await game.current_index_and_id().call()
+    (id_pre, ) = await game.current_generation_id().call()
     (image_pre) = await game.view_game(id_pre).invoke()
     await display(image_pre)
 
@@ -90,8 +88,8 @@ async def test_give_life(game_factory):
     print(f"Passed: Correctly fails when the claimer is not the owner.")
 
     # First make the player have a turn
-    await game.evolve_generations(
-            USER_IDS[0], 1).invoke()
+    await game.evolve_and_claim_next_generation(
+            USER_IDS[0]).invoke()
 
     # Get the details of their new token.
     (user_token_id, _, _, _, _) = await game.get_user_data(
@@ -102,11 +100,10 @@ async def test_give_life(game_factory):
         alter_col, user_token_id).invoke()
 
 
-    (index_post, id_post) = await game.current_index_and_id().call()
+    (id_post, ) = await game.current_generation_id().call()
     (image_post) = await game.view_game(id_post).invoke()
     await display(image_post)
 
-    assert index_pre == index_post - 1 == 0
     assert id_pre == id_post - 1 == 1
     # Check the cell is alive.
     assert image_post[alter_row] == 2**(DIM - 1 - alter_col)

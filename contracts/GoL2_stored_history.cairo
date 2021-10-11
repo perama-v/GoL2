@@ -19,9 +19,6 @@ from starkware.starknet.common.syscalls import (call_contract,
 # Width of the simulation grid.
 const DIM = 32
 
-# Maximum number of steps a single turn can evolve the game by.
-const max_steps = 5
-
 ##### Storage #####
 # Returns whether the game has started (bool=1) or not (bool=0).
 @storage_var
@@ -36,18 +33,6 @@ end
 # Stores how many tokens have been redeemed for a give_life act.
 @storage_var
 func redemption_count() -> (count : felt):
-end
-
-# Mapping to enable walking along the game states while the gen_id
-# may skip forward an arbitrary number of steps.
-@storage_var
-func generation_at_index(gen_index) -> (gen_id : felt):
-end
-
-# Mapping to enable walking along the game states while the gen_id
-# may skip forward an arbitrary number of steps.
-@storage_var
-func index_at_generation(gen_id) -> (gen_index : felt):
 end
 
 # A store of the sequence of redemptions for walking the history.
@@ -131,31 +116,24 @@ func spawn{
     current_generation.write(1)
     # Prevent entry to this function again.
     spawned.write(1)
-    # Generation index=0 will be saved as the first gen (gen_id=1).
-    # The second turn will have index 1, but may have gen_id=5 (or n).
-    generation_at_index.write(0, 1)
-    index_at_generation.write(1, 0)
     return ()
 end
 
 # Progresses the game by a chosen number of generations
 @external
-func evolve_generations{
+func evolve_and_claim_next_generation{
         syscall_ptr : felt*,
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        user_id_admintemp : felt,
-        number_of_generations : felt
+        user_id : felt
     ):
     alloc_locals
     let (local last_gen) = current_generation.read()
-    # Set limit on generations per turn: (0, max_steps].
-    assert_not_zero(number_of_generations)
-    assert_nn_le(number_of_generations, max_steps)
-    local generations = number_of_generations
+    # Limit to one generation per turn. (
+    local generations = 1
     local new_gen = last_gen + generations
     # Unpack the stored game
     # Iterates over rows, then cols to get an array of all cells.
@@ -174,19 +152,13 @@ func evolve_generations{
     # To expose information to the frontend (pending Token/Events).
     #let (user) = get_caller_address()
     # For testing, skip account contract use. TODO add accounts.
-    let user = user_id_admintemp
+    let user = user_id
 
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
     # Store the token_id as a zero-based index of the uesrs token.
     generation_of_owner.write(user, prev_tokens, new_gen)
     owner_of_generation.write(new_gen, user)
-
-    # Index the current generation for easy fetching.
-    let (current_index) = index_at_generation.read(current_generation)
-    generation_at_index.write(current_index + 1, new_gen)
-    index_at_generation.write(new_gen, current_index + 1)
-
     return ()
 end
 
@@ -199,7 +171,7 @@ func give_life_to_cell{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        user_id_admintemp : felt,
+        user_id : felt,
         cell_row_index : felt,
         cell_column_index : felt,
         gen_id_of_token_to_redeem : felt
@@ -212,7 +184,7 @@ func give_life_to_cell{
     # Only the caller can redeem
     # let (user) = get_caller_address()
     # For testing, skip account contract use. TODO add accounts.
-    let user = user_id_admintemp
+    let user = user_id
 
     let (owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
     # Enable this check when accounts are used.
@@ -245,51 +217,15 @@ end
 # Returns a the current generation id and generation index.
 # The index is based on turns while the id is evolution steps.
 @view
-func current_index_and_id{
+func current_generation_id{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
     ) -> (
-        gen_index : felt,
         gen_id : felt
     ):
     let (gen_id) = current_generation.read()
-    let (gen_index) = index_at_generation.read(gen_id)
-    return (gen_index, gen_id)
-end
-
-
-# Returns a the generation index for a given gen id.
-# The index is based on turns while the id is evolution steps.
-@view
-func generation_index_from_id{
-        storage_ptr : Storage*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        gen_id : felt
-    ) -> (
-        gen_index : felt
-    ):
-    let (gen_index) = index_at_generation.read(gen_id)
-    return (gen_index)
-end
-
-
-# Returns a the generation id for a given turn index.
-# The index is based on turns while the id is evolution steps.
-@view
-func generation_id_from_index{
-        storage_ptr : Storage*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        gen_index : felt
-    ) -> (
-        gen_id : felt
-    ):
-    let (gen_id) = generation_at_index.read(gen_index)
     return (gen_id)
 end
 
