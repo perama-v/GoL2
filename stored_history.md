@@ -1,6 +1,6 @@
-# State exposure
+# Game of Life with On-Chain history.
 
-An experiment, playing with increased storage to reduce dependency
+This version of GoL2 has increased storage to reduce dependency
 on other system components. The game could potentially launch and
 later upgrade to a lower-storage model.
 
@@ -20,25 +20,17 @@ availability?
 
 ## Data fetching flow: General Data
 
-The game has generations. Each has an index and an id.
-The index is based on turns while the id is evolution steps.
-A player always increases the index by one, but the generation
-may progress more than one. The id's can be found by walking
-along the indices.
+This version of game has generation ids that progress continuously.
+A user may play the game which always progresses the generations by
+one. The player is then recorded as owning that generation, which
+is represented by a 'token' inside the contract, whose ID matches
+the generation it was minted in.
 
-1. Select a generation id to view using the functions:
-
-    - `current_generation_id()` to get the latest.
-    - `generation_index_from_id(id)` to see what index an id has.
-    - `generation_id_from_index(index)` to get any id by index.
+1. Select a generation id to view, or use `current_generation_id()`
+to retrieve the current generation.
 2. Get the current game state with `view_game(id)`
 
 This returns the stored 32 rows for that generation.
-By calling for sequential indices the historical game state can
-be reconstructed in a database.
-
-This enables the steps within one turn to be animated using the rules
-of life.
 
 Any historical state automatically includes the cells that were manually
 given life. To see which cells were manually altered, the give_life
@@ -51,7 +43,6 @@ actions are all indexed and can be fetched.
 4. By fetching and saving all the redemptions, the give_live actions
 can be used to display these cells as orange in the generation they
 are given-life, and blue at other times they are alive.
-
 
 ## Data fetching flow: Specific User Data
 
@@ -142,6 +133,43 @@ Which decoded as bin(32), bin(8) and bin(103) take the acorn form:
    100000
      1000
   1100111
+
+This can be rendered in different styles, for example:
+
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . ■ . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . ■ . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . ■ ■ . . ■ ■ ■
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+
 ```
 Make user 1 (testing pre-accounts) evolve one generation:
 ```
@@ -269,8 +297,11 @@ starknet call \
     --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
     --function view_game \
     --inputs 3
-```
 
+0 0 0 0 0 0 0 0 0 0 0 0 32 46 41 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+```
+Note that row index 9 value is 0, confirming that the cell has died out
+for having too few neighbours, as per the Rules of Life.
 
 ## Voyager
 
