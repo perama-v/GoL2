@@ -20,6 +20,7 @@ def event_loop():
 async def game_factory():
     starknet = await Starknet.empty()
     # Deploy
+    # evolver = await starknet.deploy("contracts/Evolver.cairo")
     game = await starknet.deploy("contracts/GoL2_regenerating.cairo")
     account = await starknet.deploy("contracts/Account.cairo")
 
@@ -42,15 +43,14 @@ async def test_game_flow(game_factory):
     # How many player turns.
     turns = 1
     # How many generations pass per turn (capped using modulo).
-    n_steps_within_turn = 1
+    n_steps_within_turn = 2
 
-    image_0 = await game.view_game().invoke()
+
     images = []
-    images.append(image_0)
+
     # Run some turns and save the output after each turn.
     for i in range(turns):
-        await game.evolve_generations(n_steps_within_turn).invoke()
-        im = await game.view_game().invoke()
+        im = await game.evolve_generations(n_steps_within_turn).invoke()
         images.append(im)
 
     # For an even grid appearance:
@@ -62,53 +62,3 @@ async def test_game_flow(game_factory):
             .replace('1','■ ').replace('0','. '))
             for row in range(DIM)
         ]
-
-@pytest.mark.asyncio
-async def test_give_life(game_factory):
-    _, game, _  = game_factory
-    alter_row = 5
-    alter_col = 5
-    await game.give_life_to_cell(alter_row, alter_col).invoke()
-    (altered) = await game.view_game().invoke()
-    assert altered[alter_row] == 2**(DIM - 1 - alter_col)
-
-@pytest.mark.asyncio
-async def test_edge_wrapping(game_factory):
-    # Start with freshly spawned game
-    _, game, account = game_factory
-
-    ##### Wrapping tests #####
-    top_left = 0
-    top_right = DIM - 1
-    bottom_right = DIM * DIM - 1
-    bottom_left = DIM * DIM - DIM
-    print('Wrapping tests:')
-    # Test wrapping at all four corners.
-    (TL) = await game.get_adjacent(top_left).invoke()
-    #print('TL',TL)
-    assert TL.R == 1
-    assert TL.L == top_right
-    assert TL.LU == bottom_right
-    assert TL.U == bottom_left
-
-    (TR) = await game.get_adjacent(top_right).invoke()
-    #print('TR',TR)
-    assert TR.R == top_left
-    assert TR.L == top_right - 1
-    assert TR.U == bottom_right
-    assert TR.RU == bottom_left
-
-    (BR) = await game.get_adjacent(bottom_right).invoke()
-    #print('BR',BR)
-    assert BR.R == bottom_left
-    assert BR.L == bottom_right - 1
-    assert BR.D == top_right
-    assert BR.RD == top_left
-
-    (BL) = await game.get_adjacent(bottom_left).invoke()
-    #print('BL',BL)
-    assert BL.R == bottom_left + 1
-    assert BL.L == bottom_right
-    assert BL.D == top_left
-    assert BL.LD == top_right
-

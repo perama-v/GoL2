@@ -9,13 +9,29 @@ Later a token could be minted from the recorded addresses.
 There is no manual intervention and the game can be thought of as
 'pick a special number and claim the image associated with that generation'.
 
-Upon trying to evolve 100 generations of the 32x32 grid, an `OUT_OF_RESOURCES`
-error was returned. This intuitively feels correct: if each of the 1024 cells involved
-10 steps in the program, 100 generations would be 1,000,000 steps. As I understand it, this approaches the upper bound of the proving system. Perhaps there is a much more efficient game evolution algorithm that would enable this low-storage game mode.
+You can perhaps have the following modes:
 
-A better approach would be to require the input of a known state and to verify the hash
-before progressing a global state, storing only the hash upon turn completion, but
-emitting the full game state as an event.
+- Mint from library. E.g., mint a specific well known shape (lexicon).
+    - "I claim the acorn/glidergun/xyz"
+    - Perhaps you have derivative tokens: You can license off tokens for
+    generations of your special token. (join the glider gun team by claiming
+    a generation).
+- Invent. Submit a spawn state - the wrapping makes the project different
+from the classic game. Anything that is large enough to wrap and contact
+itself will diverge from known behaviour (with respect to non-wrapping)
+    - Users can compete to see who can last the longest.
+    - If it starts to die you could pay to add a cell?
+
+
+---
+
+## Limitations of implementation:
+
+The game as a 32x32 grid can evolve two generations in one transaction.
+Three generations or more returns an `OUT_OF_RESOURCES` error. I haven't
+been able to identify a more efficient mechanism to evolve the game, so
+at this resolution (32x32), game play mechanics are limited to 1-2 generations
+per turn.
 
 ```
 starknet-compile contracts/GoL2_regenerating.cairo \
