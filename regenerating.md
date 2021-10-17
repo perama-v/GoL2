@@ -1,4 +1,4 @@
-# Simplified low-storage alternate version
+## Simplified low-storage alternate version
 
 To experiment with a different model `GoL2_regenerating.cairo` was made.
 It does not store the game state. All users choose a generation and mint from
