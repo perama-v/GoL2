@@ -2,83 +2,26 @@
 
 ### Project title
 
-GoL2
+GoL2 Creator
 
 Game of Life, a Game on L2.
 
-## Project description
+## Description
 
-A single-page website for viewing and interacting with a blockchain-based
-implementation of Conway's Game of Life.
+An accompanying module for the Canonical GoL2.
 
-Background (inspiration) material: https://playgameoflife.com/lexicon/acorn
-
-A user will be able to:
-
-- Visit the site to view the current state of the game.
-- Watch the game progress as the game contract is updated.
-- Explore previous states of the game.
-- Connect a wallet and send a transaction to StarkNet to influence
-the future of the game state in one of two ways:
-    - Progress the game by a chosen number of generations.
-    - Manually affect one cell in the game.
-- Connect a wallet and see any token-receipts of their participation.
-    - Each token is a tied to a historical game state.
-    - A token may be rendered in the same way as the main game state.
-    - If a user has multiple tokens, each is viewable.
+A user may mint a genesis state of their own, but must first participate
+in the game and interact with the tokens that other users have created.
 
 ## Game mechanics outline
 
-The game mechanics follow the standard rules of
-[Conways' Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
-The game progresses deterministically, which allows for the frond end
-to compute game states for past and future generations based on
-simple rules.
+The user selects a game. They evolve that game and gain a credit. When
+they have enough credits, they can create a game of their own.
 
-There are two additional factors that differ from most standard
-implementations:
-
-- The game grid is not infinite, a cell at the left of the grid is
-has a left-hand neighbour that is a cell on the right hand side of
-the gride along the same row. The same applies to top-bottom edges.
-- Players may perform a manual intervention to make one cell in the
-become alive.
 
 ## Game progression
 
-To 'play' a user sends a transaction to evolve the game of life.
-They may choose to evolve it one generation, or multiple generations,
-with a cap at some number (e.g., maximum 5 or 10 generations).
 
-Several players might sequentially create the following scenario from
-the starting generation (gen_1):
-
-- Game_spawn: gen_1 (the acorn)
-- Alice: gen_2 (acorn +1)
-- Bob: gen_3 (acorn +2)
-- Carol: gen_7 (acorn +6)
-- Dave: gen_8 (acorn +7)
-
-The action of Carol was to evolve by 4 generations, bringing the state
-to generation 7. She mints a single token (ID 7) just like the other players.
-
-The second aspect of 'play' is to manually alter one cell. This does not
-increase the generation, and can only be performed by redeeming an
-existing game token. In the example below, Alice and Bob revive adjacent
-cells before Elle's turn. Elle evolves 1 then Fred evolves 6.
-
-- Game_spawn: gen_1 (the acorn)
-- Alice: gen_2 (acorn +1)
-- Bob: gen_3 (acorn +2)
-- Carol: gen_7 (acorn +6)
-- Dave: gen_8 (acorn +7)
-- Bob: revive (row=4, col=5) gen_8 (acorn +7 with one revived cell)
-- Alice: revive (row=3, col=5) gen_8 (acorn +7 with two revived cells)
-- Elle: gen_9 (two-cells-revived state above +1)
-- Fred: gen_15 (gen_9 +6)
-
-The game has now diverged from the generic Acorn state through the actions
-of Alice and Bob.
 
 ## Visual style:
 
@@ -92,63 +35,9 @@ game.
 
 ## Data source
 
-The website will be run on a server that maintains a connection
-to a StarkNet node. The node maintains the
-state of the StarkNet network and will monitor for changes to a
-particular set of contracts specific to the game. The website server
-will listen for messages from the node and use that information
-to change the display.
-
-The contract will be sent transactions that change the state.
-The plan for the final architecture is to have a system that is very
-close to the Event-listener model that Ethereum contracts have.
-
-At the moment, Events are not available. The frontend can currently
-access the contract state by calling a `@View` function to retrieve state
-from storage.
-
-The user sends their transaction as an `@External` function.
-This does not return any values immediately because the transaction
-must be mined.
-
-A server looking to build up the state of the game could look
-at the transactions that have been included in blocks and independently
-recreate the game state by replaying the same actions.
-
-The current game state is stored in the contract and can be fetched
-with the `@View` function `view_game()`, which returns 32 numbers,
-each representing the 32 column states for one row. This can be used to
-corroborate with the independently-generated game state.
-
-```
-TBC: Specifics of web-server and node-server architecture.
-
-Currently the StarkNet node is being built.
-```
 
 ## Source of state updates
 
-The website will listen for `Events` that are emitted by specific
-contracts in StarkNet.
-The events contain information that is used to update the
-content of the page.
-
-The state updates from `Events` fall into two categories:
-
-- `global_events`, common to all visitors of the site.
-    - Events from the game contract.
-- `user_events`, unique to the address of the connected wallet.
-    - Token-related events.
-
-The `global_events` include:
-
-- `new_state`. The game has been evolved by a user.
-- `live_given`. A single cell has been altered by a user.
-
-The `user_events` include:
-
-- `token_owner`. The address of the connected wallet is used to
-determine which token(s) the user owns.
 
 ## Game grid data format
 

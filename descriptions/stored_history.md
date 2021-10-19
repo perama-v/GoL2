@@ -64,9 +64,9 @@ The token_id can be used to get the redemption index with
 
 Or:
 ```
-starknet-compile contracts/GoL2_stored_history.cairo \
-    --output contracts/GoL2_stored_history_compiled.json \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json
+starknet-compile contracts/GoL2_canonical.cairo \
+    --output contracts/GoL2_canonical_compiled.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json
 
 starknet-compile contracts/account.cairo \
     --output contracts/account_compiled.json \
@@ -77,17 +77,17 @@ starknet-compile contracts/account.cairo \
 
 
 ```
-pytest -s test/test_GoL2_stored_history.py
+pytest -s test/test_GoL2_canonical.py
 
 # or individual tests
 
-pytest -s test/test_GoL2_stored_history.py::test_game_flow
+pytest -s test/test_GoL2_canonical.py::test_game_flow
 ```
 
 ### Deploy
 
 ```
-starknet deploy --contract contracts/GoL2_stored_history_compiled.json \
+starknet deploy --contract contracts/GoL2_canonical_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
@@ -110,7 +110,7 @@ Spawn the game (one-off operation).
 starknet invoke \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function spawn
 
 Invoke transaction was sent.
@@ -122,7 +122,7 @@ View the game state (as a list of 32 binary-encoded values).
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function view_game \
     --inputs 1
 
@@ -176,7 +176,7 @@ Make user 1 (testing pre-accounts) evolve one generation:
 starknet invoke \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function evolve_and_claim_next_generation \
     --inputs 1
 
@@ -199,7 +199,7 @@ See how many tokens user 1 has now:
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function user_token_count \
     --inputs 1
 
@@ -212,7 +212,7 @@ the first token for this user. The data returned is: `(token_id, has_used_give_l
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function get_user_data \
     --inputs 1 0
 
@@ -229,7 +229,7 @@ specifying that token id 2 is being redeemed.
 starknet invoke \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function give_life_to_cell \
     --inputs 1 9 9 2
 
@@ -243,7 +243,7 @@ We can check the current game generation:
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function current_generation_id
 2
 ```
@@ -253,7 +253,7 @@ The generation can be used to view the game:
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function view_game \
     --inputs 2
 
@@ -270,7 +270,7 @@ Confirm this by having user 23 have a turn, evolving 1 generation:
 starknet invoke \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function evolve_and_claim_next_generation \
     --inputs 23
 
@@ -285,7 +285,7 @@ the game is correctly at generation 3. Expected: generation 3
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function current_generation_id
 3
 ```
@@ -294,7 +294,7 @@ Then call for the image:
 starknet call \
     --network=alpha \
     --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_stored_history_contract_abi.json \
+    --abi artifacts/abis/GoL2_canonical_contract_abi.json \
     --function view_game \
     --inputs 3
 
