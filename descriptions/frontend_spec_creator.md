@@ -8,7 +8,7 @@ Game of Life, a Game on L2.
 
 ## Description
 
-An accompanying module for the Canonical GoL2.
+An accompanying module for the Infinite GoL2.
 
 A user may mint a genesis state of their own, but must first participate
 in the game and interact with the tokens that other users have created.

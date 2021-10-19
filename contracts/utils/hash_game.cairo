@@ -8,8 +8,6 @@ from starkware.starknet.common.storage import Storage
 # Computes the unique hash of a list of felts.
 func hash_game{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(

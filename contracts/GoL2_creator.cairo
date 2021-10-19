@@ -149,11 +149,14 @@ func create{
     assert_le(CREDIT_REQUIREMENT, credits)
     has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
+
+    local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
     let (local game_id) = hash_game(genesis_state, genesis_state_len)
     let (local current_owner) = owner_of_game_id.read(game_id)
     assert current_owner = 0
 
+    local syscall_ptr : felt* = syscall_ptr
     # Store the game
     save_rows(game_id=game_id, generation=0,
         cell_states=genesis_state, row=DIM)
