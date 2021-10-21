@@ -16,7 +16,7 @@ from starkware.starknet.common.syscalls import (call_contract,
 
 
 from contracts.utils.hash_game import hash_game
-#from contracts.utils.packing import pack_cols, unpack_cols
+from contracts.utils.packing import pack_cols, unpack_cols
 from contracts.utils.life_rules import (evaluate_rounds,
     apply_rules, get_adjacent)
 
@@ -136,12 +136,56 @@ func create{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        genesis_state_len : felt,
-        genesis_state : felt*
+        row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
+        row_4 : felt, row_5 : felt, row_6 : felt, row_7 : felt,
+        row_8 : felt, row_9 : felt, row_10 : felt, row_11 : felt,
+        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt,
+        row_16 : felt, row_17 : felt, row_18 : felt, row_19 : felt,
+        row_20 : felt, row_21 : felt, row_22 : felt, row_23 : felt,
+        row_24 : felt, row_25 : felt, row_26 : felt, row_27 : felt,
+        row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
     ):
     # Accepts a 32 element list representing the rows of the game.
     alloc_locals
-    assert genesis_state_len = DIM
+    let (local genesis_state : felt*) = alloc()
+    assert genesis_state[0] = row_0
+    assert genesis_state[1] = row_1
+    assert genesis_state[2] = row_2
+    assert genesis_state[3] = row_3
+    assert genesis_state[4] = row_4
+    assert genesis_state[5] = row_5
+    assert genesis_state[6] = row_6
+    assert genesis_state[7] = row_7
+    assert genesis_state[8] = row_8
+    assert genesis_state[9] = row_9
+    assert genesis_state[10] = row_10
+    assert genesis_state[11] = row_11
+    assert genesis_state[12] = row_12
+    assert genesis_state[13] = row_13
+    assert genesis_state[14] = row_14
+    assert genesis_state[15] = row_15
+    assert genesis_state[16] = row_16
+    assert genesis_state[17] = row_17
+    assert genesis_state[18] = row_18
+    assert genesis_state[19] = row_19
+    assert genesis_state[20] = row_20
+    assert genesis_state[21] = row_21
+    assert genesis_state[22] = row_22
+    assert genesis_state[23] = row_23
+    assert genesis_state[24] = row_24
+    assert genesis_state[25] = row_25
+    assert genesis_state[26] = row_26
+    assert genesis_state[27] = row_27
+    assert genesis_state[28] = row_28
+    assert genesis_state[29] = row_29
+    assert genesis_state[30] = row_30
+    assert genesis_state[31] = row_31
+
+    # TODO - make input an array after resolving this issue:
+    # Pytest expects the length to be a list element.
+    # It wants [32, row_0, row_1, row_31]
+    # Inside the function, the first element of the list is addressed
+    # by index=1,  function accepts the list
 
     let (local caller) = get_caller_address()
     # Check that the caller has enough credits, subtract some.
@@ -150,17 +194,46 @@ func create{
     #assert_le(CREDIT_REQUIREMENT, credits)
     #has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
-
     local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
-    let (local game_id) = hash_game(genesis_state, genesis_state_len)
+    let (local game_id) = hash_game(genesis_state, 32)
     let (local current_owner) = owner_of_game_id.read(game_id)
     assert current_owner = 0
 
     local syscall_ptr : felt* = syscall_ptr
     # Store the game
-    save_rows(game_id=game_id, generation=0,
-        cell_states=genesis_state, row=DIM)
+    stored_row.write(game_id=game_id, gen=0, row=0, value=row_0)
+    stored_row.write(game_id=game_id, gen=0, row=1, value=row_1)
+    stored_row.write(game_id=game_id, gen=0, row=2, value=row_2)
+    stored_row.write(game_id=game_id, gen=0, row=3, value=row_3)
+    stored_row.write(game_id=game_id, gen=0, row=4, value=row_4)
+    stored_row.write(game_id=game_id, gen=0, row=5, value=row_5)
+    stored_row.write(game_id=game_id, gen=0, row=6, value=row_6)
+    stored_row.write(game_id=game_id, gen=0, row=7, value=row_7)
+    stored_row.write(game_id=game_id, gen=0, row=8, value=row_8)
+    stored_row.write(game_id=game_id, gen=0, row=9, value=row_9)
+    stored_row.write(game_id=game_id, gen=0, row=10, value=row_10)
+    stored_row.write(game_id=game_id, gen=0, row=11, value=row_11)
+    stored_row.write(game_id=game_id, gen=0, row=12, value=row_12)
+    stored_row.write(game_id=game_id, gen=0, row=13, value=row_13)
+    stored_row.write(game_id=game_id, gen=0, row=14, value=row_14)
+    stored_row.write(game_id=game_id, gen=0, row=15, value=row_15)
+    stored_row.write(game_id=game_id, gen=0, row=16, value=row_16)
+    stored_row.write(game_id=game_id, gen=0, row=17, value=row_17)
+    stored_row.write(game_id=game_id, gen=0, row=18, value=row_18)
+    stored_row.write(game_id=game_id, gen=0, row=19, value=row_19)
+    stored_row.write(game_id=game_id, gen=0, row=20, value=row_20)
+    stored_row.write(game_id=game_id, gen=0, row=21, value=row_21)
+    stored_row.write(game_id=game_id, gen=0, row=22, value=row_22)
+    stored_row.write(game_id=game_id, gen=0, row=23, value=row_23)
+    stored_row.write(game_id=game_id, gen=0, row=24, value=row_24)
+    stored_row.write(game_id=game_id, gen=0, row=25, value=row_25)
+    stored_row.write(game_id=game_id, gen=0, row=26, value=row_26)
+    stored_row.write(game_id=game_id, gen=0, row=27, value=row_27)
+    stored_row.write(game_id=game_id, gen=0, row=28, value=row_28)
+    stored_row.write(game_id=game_id, gen=0, row=29, value=row_29)
+    stored_row.write(game_id=game_id, gen=0, row=30, value=row_30)
+    stored_row.write(game_id=game_id, gen=0, row=31, value=row_31)
 
     # Update trackers.
     owner_of_game_id.write(game_id, caller)
@@ -188,6 +261,7 @@ func contribute{
         game_id)
     # Unpack the stored game.
     # Iterates over rows, then cols to get an array of all cells.
+    # Cell_states array is DIM**2 long: One cell per index (no packing).
     let (local cell_states_init : felt*) = alloc()
     unpack_rows(game_id=game_id, generation=prev_generation,
         cell_states=cell_states_init,row=DIM)
@@ -212,9 +286,37 @@ func contribute{
 end
 
 
-# TODO A function that gets the index of the latest game.
+# Gets the index and id of the latest game that was created.
+@view
+func newest_game{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (
+        game_index : felt,
+        game_id : felt,
+        generation : felt
+    ):
+    let (game_index) = latest_game_index.read()
+    let (game_id) = game_id_from_game_index.read(game_index)
+    let (generation) = latest_game_generation.read(game_id)
+    return (game_index, game_id, generation)
+end
 
 # TODO A function that returns user data (credits, games owned).
+@view
+func user_data{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (
+        user_index : felt,
+        game_count : felt,
+        credit_count : felt
+    ):
+
+    return (game_index, game_id, generation)
+end
 
 # Returns a list of rows for the specified generation.
 @view
@@ -307,7 +409,7 @@ func unpack_rows{
     return ()
 end
 
-# Saves inidividual rows in the given array.
+# Saves inidividual rows in the given array. (pack rows and save)
 func save_rows{
         storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
@@ -343,132 +445,3 @@ func save_rows{
     return ()
 end
 
-
-### PACKING LOGIC ###
-# Post-sim. Walk rows then columns to store state.
-func pack_rows{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        compact : felt*,
-        cell_states : felt*,
-        row : felt
-    ) -> (
-        compact : felt*
-    ):
-    if row == 0:
-        return (compact=compact)
-    end
-    alloc_locals
-    let (local compact : felt*) = pack_rows(compact=compact, cell_states=cell_states, row=row-1)
-    # (Note, on first entry, row=1 so row-1 gets the index)
-    # Create the binary encoded state for the row.
-    let (row_to_store) = pack_cols(cell_states=cell_states,
-        row=row-1, col=DIM, row_to_store=0)
-    # row_binary.write(row=row-1, value=row_to_store)
-    assert compact[row - 1] = row_to_store
-
-    return (compact=compact)
-end
-
-
-
-# Post-sim. Walk columns for a given row and saves array to state.
-func pack_cols{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        cell_states : felt*,
-        row : felt,
-        col : felt,
-        row_to_store : felt
-    ) -> (
-        row_to_store : felt
-    ):
-    alloc_locals
-    if col == 0:
-        return (row_to_store)
-    end
-    # Loops over columns, adding to a single felt using a mask.
-    let (local row_to_store) = pack_cols(cell_states=cell_states,
-        row=row, col=col-1, row_to_store=row_to_store)
-    # (Note, on first entry, col=1 so col-1 gets the index)
-
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
-
-
-    # Get index of cell in cell_state for this row-col combo.
-    # "Move 'row length' blocks down list, then add the column index".
-    let index = row * DIM + (col - 1)
-    let state = cell_states[index]
-
-
-    # col=0 goes in MSB. col=DIM-1 goes in LSB.
-    let binary_position = DIM - (col - 1) - 1
-    # 000...00000000011 row_to_store (old aggregator)
-    # 000...00000001000 cell_binary (cell state)
-    # 000...00000001011 bitwise OR (new aggregator)
-
-    # Binary = state * bit = state * 2**column_index
-    # E.g., For index-0: 1 * 2**0 = 0b1
-    # E.g., For index-2: 1 * 2**2 = 0b100
-
-    let (bit) = pow(2, binary_position)
-    let cell_binary = state * bit
-    # store = store OR row_binary
-    let (new_row) = bitwise_or(cell_binary, row_to_store)
-
-    return (new_row)
-end
-
-
-# Pre-sim. Walk columns for a given row and saves state to an array.
-func unpack_cols{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        cell_states : felt*,
-        row : felt,
-        col : felt,
-        stored_row : felt
-    ):
-    alloc_locals
-    if col == 0:
-        return ()
-    end
-
-    unpack_cols(cell_states=cell_states,
-        row=row, col=col-1, stored_row=stored_row)
-    # (Note, on first entry, col=1 so col-1 gets the index)
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
-    # state = 2**column_index AND row_binary
-    # Column zero is the MSB, so (DIM_index - col_index) accesses the bit.
-    let binary_position = (DIM - 1) - (col - 1)
-    let (mask) = pow(2, binary_position)
-    let (state) = bitwise_and(stored_row, mask)
-    # E.g., if in col_index 2, for an alive 'state=4 (0b100)',
-    # convert to 1
-    local alive_or_dead
-    if state == 0:
-        assert alive_or_dead = 0
-    else:
-        assert alive_or_dead = 1
-    end
-    let index = row * DIM + (col - 1)
-    assert cell_states[index] = alive_or_dead
-
-
-    return ()
-end

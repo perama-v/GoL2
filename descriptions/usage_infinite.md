@@ -53,11 +53,11 @@ The token_id can be used to get the redemption index with
 Or:
 ```
 starknet-compile contracts/GoL2_infinite.cairo \
-    --output contracts/GoL2_infinite_compiled.json \
+    --output artifacts/GoL2_infinite_compiled.json \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json
 
 starknet-compile contracts/account.cairo \
-    --output contracts/account_compiled.json \
+    --output artifacts/account_compiled.json \
     --abi artifacts/abis/account_contract_abi.json
 ```
 
@@ -75,7 +75,7 @@ pytest -s test/test_GoL2_infinite.py::test_game_flow
 ### Deploy
 
 ```
-starknet deploy --contract contracts/GoL2_infinite_compiled.json \
+starknet deploy --contract artifacts/GoL2_infinite_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
@@ -84,7 +84,7 @@ Transaction ID: 262821
 
 starknet tx_status --network=alpha --id=262821
 
-starknet deploy --contract contracts/account_compiled.json \
+starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
 
 TODO - Integrate account

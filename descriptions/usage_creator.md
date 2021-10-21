@@ -28,11 +28,11 @@ User data can be fetched to see credit count and any games owned.
 Or:
 ```
 starknet-compile contracts/GoL2_creator.cairo \
-    --output contracts/GoL2_creator_compiled.json \
+    --output artifacts/GoL2_creator_compiled.json \
     --abi artifacts/abis/GoL2_creator_contract_abi.json
 
 starknet-compile contracts/account.cairo \
-    --output contracts/account_compiled.json \
+    --output artifacts/account_compiled.json \
     --abi artifacts/abis/account_contract_abi.json
 ```
 
@@ -50,7 +50,7 @@ pytest -s test/test_GoL2_creator.py::test_function_name
 ### Deploy
 
 ```
-starknet deploy --contract contracts/GoL2_creator_compiled.json \
+starknet deploy --contract artifacts/GoL2_creator_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
@@ -59,7 +59,7 @@ Transaction ID: 262821
 
 starknet tx_status --network=alpha --id=262821
 
-starknet deploy --contract contracts/account_compiled.json \
+starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
 
 TODO - Integrate account

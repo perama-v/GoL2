@@ -37,17 +37,23 @@ async def game_factory():
 @pytest.mark.asyncio
 async def test_create(game_factory):
     # Start with freshly spawned game
-    _, game, _ = game_factory
+    _, game, account = game_factory
 
     # First generate 10 credits by progressing another game.
     # From the zero address.
-    for i in range(2):
+    '''
+    for i in range(10):
         print(f'Done with {i}')
         await game.contribute(0).invoke()
+    '''
 
-    # Diagnoal line
-    genesis = [ 2**i for i in range(32) ]
-    im = await game.create(genesis).invoke()
+    row_states = [ 2**(i) for i in range(32) ]
+    nonce = 1
+    create_game = signer.build_transaction(
+        account, game.contract_address, 'create', row_states, nonce)
+    await create_game.invoke()
+    (index, id, gen) = await game.newest_game().call()
+    im = await game.view_game(id, gen).call()
     view([im])
 
 
