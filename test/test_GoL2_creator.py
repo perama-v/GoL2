@@ -20,7 +20,6 @@ def event_loop():
 async def game_factory():
     starknet = await Starknet.empty()
     # Deploy
-    # evolver = await starknet.deploy("contracts/Evolver.cairo")
     game = await starknet.deploy("contracts/GoL2_creator.cairo")
     account = await starknet.deploy("contracts/Account.cairo")
 
@@ -40,23 +39,46 @@ async def test_create(game_factory):
     _, game, account = game_factory
 
     # First generate 10 credits by progressing another game.
-    # From the zero address.
-    (index, first_game_id, gen) = await game.newest_game().call()
-
+    (first_index, first_game_id, newest_gen) = await game.newest_game().call()
+    nonce = 1
     for i in range(10):
         print(f'Done with {i}')
-        contribute = signer.build_transaction(account,
-            game.contract_address, 'contribute', first_game_id)
-        await contribute.invoke()
 
+        contribute = signer.build_transaction(account,
+            game.contract_address, 'contribute', [first_game_id],
+            nonce)
+        await contribute.invoke()
+        nonce = nonce + 1
+
+    # Make sure credits were given.
+    (game_count, credit_count) = await game.user_counts(
+            account.contract_address).call()
+    assert game_count == 0
+    assert credit_count == 10
+
+    # Redeem credits
     row_states = [ 2**(i) for i in range(32) ]
-    nonce = 1
     create_game = signer.build_transaction(
         account, game.contract_address, 'create', row_states, nonce)
     await create_game.invoke()
+
+    # Check that the user has a game.
+    (game_index, ) = await game.specific_game_of_user(
+        account.contract_address, 0).call()
+    assert game_index == first_index + 1
+
+    # Check that the game was recorded as the latest game.
     (index, id, gen) = await game.newest_game().call()
-    im = await game.view_game(id, gen).call()
+    assert index == first_index + 1
+
+    im = await game.view_game(index, 0).call()
     view([im])
+    print('Above is the newly created game')
+
+    (gen,) = await game.generation_of_game(first_index).call()
+    im = await game.view_game(first_index, gen).call()
+    view([im])
+    print('Above is the first game after being progressed 10 times.')
 
 
 def view(images):

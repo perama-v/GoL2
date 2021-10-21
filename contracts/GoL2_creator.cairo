@@ -74,7 +74,7 @@ func game_index_from_game_id(
     ):
 end
 
-# Inndex of most recent game.
+# Index of most recent game.
 @storage_var
 func latest_game_index(
     ) -> (
@@ -219,9 +219,9 @@ func create{
     let (local caller) = get_caller_address()
     # Check that the caller has enough credits, subtract some.
     # TODO Uncomment and test credits
-    #let (credits) = has_credits.read(caller)
-    #assert_le(CREDIT_REQUIREMENT, credits)
-    #has_credits.write(caller, credits - CREDIT_REQUIREMENT)
+    let (credits) = has_credits.read(caller)
+    assert_le(CREDIT_REQUIREMENT, credits)
+    has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
     local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
@@ -230,39 +230,41 @@ func create{
     assert current_owner = 0
 
     local syscall_ptr : felt* = syscall_ptr
+    let (current_index) = latest_game_index.read()
+    let idx = current_index + 1
     # Store the game
-    stored_row.write(game_index=game_index, gen=0, row=0, value=row_0)
-    stored_row.write(game_index=game_index, gen=0, row=1, value=row_1)
-    stored_row.write(game_index=game_index, gen=0, row=2, value=row_2)
-    stored_row.write(game_index=game_index, gen=0, row=3, value=row_3)
-    stored_row.write(game_index=game_index, gen=0, row=4, value=row_4)
-    stored_row.write(game_index=game_index, gen=0, row=5, value=row_5)
-    stored_row.write(game_index=game_index, gen=0, row=6, value=row_6)
-    stored_row.write(game_index=game_index, gen=0, row=7, value=row_7)
-    stored_row.write(game_index=game_index, gen=0, row=8, value=row_8)
-    stored_row.write(game_index=game_index, gen=0, row=9, value=row_9)
-    stored_row.write(game_index=game_index, gen=0, row=10, value=row_10)
-    stored_row.write(game_index=game_index, gen=0, row=11, value=row_11)
-    stored_row.write(game_index=game_index, gen=0, row=12, value=row_12)
-    stored_row.write(game_index=game_index, gen=0, row=13, value=row_13)
-    stored_row.write(game_index=game_index, gen=0, row=14, value=row_14)
-    stored_row.write(game_index=game_index, gen=0, row=15, value=row_15)
-    stored_row.write(game_index=game_index, gen=0, row=16, value=row_16)
-    stored_row.write(game_index=game_index, gen=0, row=17, value=row_17)
-    stored_row.write(game_index=game_index, gen=0, row=18, value=row_18)
-    stored_row.write(game_index=game_index, gen=0, row=19, value=row_19)
-    stored_row.write(game_index=game_index, gen=0, row=20, value=row_20)
-    stored_row.write(game_index=game_index, gen=0, row=21, value=row_21)
-    stored_row.write(game_index=game_index, gen=0, row=22, value=row_22)
-    stored_row.write(game_index=game_index, gen=0, row=23, value=row_23)
-    stored_row.write(game_index=game_index, gen=0, row=24, value=row_24)
-    stored_row.write(game_index=game_index, gen=0, row=25, value=row_25)
-    stored_row.write(game_index=game_index, gen=0, row=26, value=row_26)
-    stored_row.write(game_index=game_index, gen=0, row=27, value=row_27)
-    stored_row.write(game_index=game_index, gen=0, row=28, value=row_28)
-    stored_row.write(game_index=game_index, gen=0, row=29, value=row_29)
-    stored_row.write(game_index=game_index, gen=0, row=30, value=row_30)
-    stored_row.write(game_index=game_index, gen=0, row=31, value=row_31)
+    stored_row.write(game_index=idx, gen=0, row=0, value=row_0)
+    stored_row.write(game_index=idx, gen=0, row=1, value=row_1)
+    stored_row.write(game_index=idx, gen=0, row=2, value=row_2)
+    stored_row.write(game_index=idx, gen=0, row=3, value=row_3)
+    stored_row.write(game_index=idx, gen=0, row=4, value=row_4)
+    stored_row.write(game_index=idx, gen=0, row=5, value=row_5)
+    stored_row.write(game_index=idx, gen=0, row=6, value=row_6)
+    stored_row.write(game_index=idx, gen=0, row=7, value=row_7)
+    stored_row.write(game_index=idx, gen=0, row=8, value=row_8)
+    stored_row.write(game_index=idx, gen=0, row=9, value=row_9)
+    stored_row.write(game_index=idx, gen=0, row=10, value=row_10)
+    stored_row.write(game_index=idx, gen=0, row=11, value=row_11)
+    stored_row.write(game_index=idx, gen=0, row=12, value=row_12)
+    stored_row.write(game_index=idx, gen=0, row=13, value=row_13)
+    stored_row.write(game_index=idx, gen=0, row=14, value=row_14)
+    stored_row.write(game_index=idx, gen=0, row=15, value=row_15)
+    stored_row.write(game_index=idx, gen=0, row=16, value=row_16)
+    stored_row.write(game_index=idx, gen=0, row=17, value=row_17)
+    stored_row.write(game_index=idx, gen=0, row=18, value=row_18)
+    stored_row.write(game_index=idx, gen=0, row=19, value=row_19)
+    stored_row.write(game_index=idx, gen=0, row=20, value=row_20)
+    stored_row.write(game_index=idx, gen=0, row=21, value=row_21)
+    stored_row.write(game_index=idx, gen=0, row=22, value=row_22)
+    stored_row.write(game_index=idx, gen=0, row=23, value=row_23)
+    stored_row.write(game_index=idx, gen=0, row=24, value=row_24)
+    stored_row.write(game_index=idx, gen=0, row=25, value=row_25)
+    stored_row.write(game_index=idx, gen=0, row=26, value=row_26)
+    stored_row.write(game_index=idx, gen=0, row=27, value=row_27)
+    stored_row.write(game_index=idx, gen=0, row=28, value=row_28)
+    stored_row.write(game_index=idx, gen=0, row=29, value=row_29)
+    stored_row.write(game_index=idx, gen=0, row=30, value=row_30)
+    stored_row.write(game_index=idx, gen=0, row=31, value=row_31)
 
     # Update trackers.
     owner_of_game.write(game_id, caller)
@@ -275,7 +277,7 @@ func create{
     let (prev_game_count) = user_game_count.read(caller)
     user_game_count.write(caller, prev_game_count + 1)
     # Index of new = prev_game_count.
-    game_index_from_inventory.write(caller, prev_game_count)
+    game_index_from_inventory.write(caller, prev_game_count, new_index)
     return ()
 end
 
@@ -339,7 +341,7 @@ end
 
 # Returns user data (credits, games owned).
 @view
-func user_data{
+func user_counts{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -357,7 +359,7 @@ end
 
 # Returns game index from the index of a users inventory.
 @view
-func user_data{
+func specific_game_of_user{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -373,6 +375,23 @@ func user_data{
 
     return (game_index)
 end
+
+# Returns the latest generation of a given game.
+@view
+func generation_of_game{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        game_index : felt
+    ) -> (
+        generation : felt
+    ):
+    # E.g., 'Get the latest generation number for this game index'.
+    let (generation) = latest_game_generation.read(game_index)
+    return (generation)
+end
+
 
 # Returns a list of rows for the specified generation.
 @view
@@ -443,7 +462,7 @@ func unpack_rows{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        game_id : felt,
+        game_index : felt,
         generation : felt,
         cell_states : felt*,
         row : felt
@@ -472,7 +491,7 @@ func save_rows{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        game_id : felt,
+        game_index : felt,
         generation : felt,
         cell_states : felt*,
         row : felt
