@@ -54,15 +54,15 @@ starknet deploy --contract artifacts/GoL2_creator_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
-Contract address: ADDRESS
-Transaction ID: 262821
+Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Transaction ID: 295422
 
-starknet tx_status --network=alpha --id=262821
+starknet tx_status --network=alpha --id=295422
 
 starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
 
-TODO - Integrate account
+Contract address: ACCOUNT_ADDRESS
 ```
 
 
@@ -72,22 +72,22 @@ Spawn the game (one-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function spawn
 
 Invoke transaction was sent.
-Contract address: ADDRESS
-Transaction ID: 262844
+Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Transaction ID: 295426
 ```
 View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function view_game \
-    --inputs 1
+    --inputs 0 0
 
 Returns the spawned Acorn, situated mid-right):
 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -134,18 +134,18 @@ This can be rendered in different styles, for example:
 
 
 ```
-Make user 1 (testing pre-accounts) evolve one generation:
+Make the zero-address (testing pre-accounts) evolve one generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function evolve_and_claim_next_generation \
-    --inputs 1
+    --function contribute \
+    --inputs 0
 
 Invoke transaction was sent.
-Contract address: ADDRESS
-Transaction ID: 262846
+Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Transaction ID: 295433
 ```
 Calling `view_game` again yields the correct next generation:
 ```
@@ -157,118 +157,52 @@ Or:
        10
 ```
 
-See how many tokens user 1 has now:
+See how many credits the zero-address has now. This
+will return `game_count` (will be zero) and `credit_count`.
 ```
 starknet call \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function user_token_count \
-    --inputs 1
+    --function user_counts \
+    --inputs 0
 
-1
+0 1
 ```
-Pull data about their token(s) using the index of each token. E.g., index 0 will access
-the first token for this user. The data returned is: `(token_id, has_used_give_life, generation_during_give_life, alive_cell_row, alive_cell_col)`.
+Pull data the zero-th game of the zero-address. This is for testing. This
+is the address that is attributed when an account is not used). The
+result should be zero.
 
 ```
 starknet call \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function get_user_data \
-    --inputs 1 0
+    --function specific_game_of_user \
+    --inputs 0 0
 
-2 0 0 0 0
+0
 ```
-So this user has token_id 2, indicating that it represents generation 2, the
-very next step after the acorn (generaion 1). The other fields indicate it
-has not yet been used to give life.
-
-Make, for user 1, a particular cell (row index `9` and column index `9`) become alive,
-specifying that token id 2 is being redeemed.
+After collecting ten tokens, a user can create as follows. This is
+a sparsely populated canvas.
 
 ```
 starknet invoke \
     --network=alpha \
-    --address ADDRESS \
+    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function give_life_to_cell \
-    --inputs 1 9 9 2
+    --function create \
+    --inputs 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Invoke transaction was sent.
-Contract address: ADDRESS
-Transaction ID: 262847
+Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Transaction ID: 295448
 ```
 
-We can check the current game generation:
-```
-starknet call \
-    --network=alpha \
-    --address ADDRESS \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function current_generation_id
-2
-```
-Thus, there has been one turn and the current generation is 2, as expected.
-The generation can be used to view the game:
-```
-starknet call \
-    --network=alpha \
-    --address ADDRESS \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function view_game \
-    --inputs 2
-
-Returns the addion of a single cell at the tenth row/col:
-0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-
-Tenth row: 00000000010000000000000000000000
-```
-This single cell would die out in the next generation, and so would not be a
-wise placement, unless other cells are placed in adjacent locations.
-
-Confirm this by having user 23 have a turn, evolving 1 generation:
-```
-starknet invoke \
-    --network=alpha \
-    --address ADDRESS \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function evolve_and_claim_next_generation \
-    --inputs 23
-
-Invoke transaction was sent.
-Contract address: ADDRESS
-Transaction ID: 262849
-```
-Then check that the isolated cell has died, first we can check that
-the game is correctly at generation 3. Expected: generation 3
-(spawn=1, then +1 got to 2, then +1 makes 3).
-```
-starknet call \
-    --network=alpha \
-    --address ADDRESS \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function current_generation_id
-3
-```
-Then call for the image:
-```
-starknet call \
-    --network=alpha \
-    --address ADDRESS \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function view_game \
-    --inputs 3
-
-0 0 0 0 0 0 0 0 0 0 0 0 32 46 41 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-```
-Note that row index 9 value is 0, confirming that the cell has died out
-for having too few neighbours, as per the Rules of Life.
 
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/ADDRESS).
+Interact using the Voyager browser [here](https://voyager.online/contract/0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5).
 
 
 
