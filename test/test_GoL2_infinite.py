@@ -23,7 +23,7 @@ def event_loop():
 async def game_factory():
     starknet = await Starknet.empty()
     # Deploy
-    game = await starknet.deploy("contracts/GoL2_stored_history.cairo")
+    game = await starknet.deploy("contracts/GoL2_infinite.cairo")
     account = await starknet.deploy("contracts/Account.cairo")
 
     # Set up account

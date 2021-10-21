@@ -1,4 +1,6 @@
-# Social Automata
+# GoL2
+
+Game of L2
 
 Cellular automata on replicated state machine.
 An implementation of Conway's Game of Life as a contract on StarkNet, written
@@ -12,46 +14,76 @@ This implementation is novel in that the game state shared (agreed by all) and p
 (anyone may participate). The game rules are enforced by a validity proof, which means that
 no one can evolve the game using different rules.
 
-There are three rules in this implementation:
+The main rules of the game are:
 
 - The normal rules of Conways' Game of Life (3 to revive, 2 or 3 to stay alive).
 - The boundaries wrap - a glider may travel infinitely within the confines of the grid.
-- A user who plays gains a special power - to revive a single cell at their discretion.
-
-The game may flourish and produce a myriad of diverse game states, or it may fall to ruin and
-become a barren wasteland. It will be up to the participants to decide if and when to use
-their life-giving power. What will become of the
 
 |Acorn generation 0|Acorn generation 1|
 |:--: | :--:|
 | ![acorn-0](img/acorn_0.png)| ![acorn-0](img/acorn_1.png) |
 
+## Game modes
+
+There are two modes: Inifinite and Creator
+
+- Usage and Mechanics
+    - [Infinite](descriptions/usage_infinite.md)
+    - [Creator](descriptions/usage_creator.md)
+- Frontend Considerations
+    - [General notes](descriptions/frontend_spec_general_notes.md)
+    - [Infinite](descriptions/frontend_spec_infinite.md)
+    - [Creator](descriptions/frontend_spec_creator.md)
+
+
+### Infinite
+
+A single game with an ability for participants to evolve the game to its next state.
+By doing so they also gain a special power - to revive a single cell at their discretion.
+
+The game may flourish and produce a myriad of diverse game states, or it may fall to ruin and
+become a barren wasteland. It will be up to the participants to decide if and when to use
+their life-giving power.
+
+The purpose of this game mode is to encourage collaboration.
+
+### Creator
+
+An open-ended collection of starting states that anyone can create. A player
+can specify the alive/dead state for all the cells in the game they spawn. The
+game can be evolved from that point, but individual cells cannot be altered.
+
+Anyone can progress a game, and in return they get creator credits. Ten creator
+credits can be redeemed to spawn their own game.
+
+The purpose of this game is to allow players to explore interesting starting
+patterns in the the game. E.g., inventing new starting positions that last a
+many generations before dying out or create a unique pattern.
+
 # Architecture
 
-A contract that holds the state of Conway's Game of Life. Players may call the contract,
-with an `alter_cell` command. This causes the simulation to progress and for the new state to
-be stored.
+Each game mode is a separate contract and holds the state of Conway's Game of Life.
 
-- Square with side length `dim`, (E.g., dim = 16) containing `dim**2` cells. Cells wrap around
-edges.
+- The game board is a square with side length `dim`, (E.g., dim = 16) containing `dim**2` cells.
+Cells wrap around edges.
 - Every cell is in storage as alive or dead.
-    - Storage is the costly bottleneck.
     - A row of cells will be stored as a binary number of length `dim` (max `dim` is
     limited to 250 bit due to field size).
     - Each row is stored as a felt in storage. (`dim` storage updates per interaction)
-- When the contract is called with `evolve_generations(number_of_generations)`, it
-    1. Runs the simulation for `number_of_generations`.
+- When the contract is called by a player to progress a game it:
+    1. Runs the simulation for one generation..
     2. Saves the new state to storage.
     3. Saves the generation.
-    4. Issues an `Warden` NFT to the player.
-- Anyone can call the contract with the `view_game` call which will display the current
-saved state of the game.
+    4. Issues a credit.
+- Anyone can call the contract to view the game which returns a set of 32 integers
+representing rows of the game board. The columns are binary encoded with 0 or 1 for
+dead/alive states in each row.
 - Anyone with a `Warden` token may call `give_life_to_cell` once per token to
 revive a chosen cell.
 
-## Operation
+## Inner Contract Operations
 
-- A user calls `run()`.
+- A player calls `run()`.
 - Initialization: A `cell_states` array is created to hold the state of all the cells
 (length `dim**2`):
     1. Iterate over `dim` to access rows by index indices)
@@ -68,38 +100,24 @@ revive a chosen cell.
     `cell_states=next_state`.
 - Repeat simulation for `number_of_generations`.
 - Recreate the binary representation of each row and save with `saved_cells.write(row)`.
-- Issue a `warden` token to the user. The token has a generation ID that is tied
-to the history of the game. The events emitted by the game contract will contain
-the generation ID and the image of the game at the end of that turn. In this way,
-the token bears the image that they helped create during the current turn
-(as an artistic memento).
-- An event is emitted, containing the tokenID of the user and the number of steps progressed. Listening to this event will allow the offchain animation of the game
-for a UI (e.,g the intervening steps may be inferred from the rules of the game
-and any known `give_life()` events).
+- Issue a token to the player.
 
-In another operation, the user may use their token:
+In `Infinite` mode, a give life action is processed as follows:
 
-- A user calls  `give_life(row_index, col_index)`.
+- A player calls `give_life(row_index, col_index)`.
 - The current row is read from storage.
 - The column is applied with a bitwise AND mask to the row.
 - The row is saved to storage.
-- An event is emitted containing the altered cell and the users tokenID.
+- The player loses one give life credi.
+
+In `Creator` mode, a player submits an array of 32 integers, representing the rows
+of the game. The game then stores these, ensuring that no two starting points are the same.
+Anyone can then evolve that game to earn a creator credit.
 
 ## Token contract ownership model
 
-The game contract is the `only_owner` of the token contract - the mint
-function can only be called by the game contract.
-
-When the game contract `spawn` function is called, the address of the
-token contract is passed as an argument. The `spawn` function calls
-`initialize` on the token contract. This causes the token contract
-to store the address of the calling contract (the game contract) as
-the owner. From then onwards, the game contract may mint a token
-for a player at will.
-
-When the game contract mints a token for a player it will pass the
-account address of the player to the token contract. The token
-contract records their address as the owner for that token.
+The games currently have tokens as an internal representation. There is no ERC20/ERC721
+connected to the game at the moment.
 
 ## Example storage
 
@@ -122,75 +140,37 @@ cell_count = dim**2 (e.g., 1024 cells if DIM=32)
 
 ## Dev
 
+Activate virtual environment with python >=3.7. Install
+cairo-lang either with nile or directly.
+
+Nile:
+
     pip install cairo-nile
+    nile install 0.4.2
 
-Install Cairo-lang (e.g., 0.4.1)
+Directly:
 
-    nile install 0.4.1
+    pip install cairo-lang
 
-### Compile
+### Data structure
 
-    nile compile
-
-Or:
-```
-starknet-compile contracts/GoL2.cairo \
-    --output contracts/GoL2_compiled.json \
-    --abi artifacts/abis/GoL2_contract_abi.json
-```
-
-### Test
-
-(not currently set up with `nile test`)
-```
-pytest -s test/GoL2_test.py
-```
-
-### Deploy
+Both game modes use a binary encoded game state. Calling for a
+game state will return 32 numbers, the starting state for the Infinite
+game is the Acorn (as shown in the image above),
+situated mid-right.
 
 ```
-starknet deploy --contract contracts/GoL2_compiled.json \
-    --network=alpha
-```
-Upon deployment, the CLI will return an address, which can be used
-to interact with.
-
-### Interact
-
-Spawn the game (on-off operation).
-```
-starknet invoke \
-    --network=alpha \
-    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi artifacts/abis/GoL2_contract_abi.json \
-    --function spawn
-```
-View the game state (as a list of 32 binary-encoded values).
-```
-starknet call \
-    --network=alpha \
-    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi artifacts/abis/GoL2_contract_abi.json \
-    --function view_game
-
-Returns the spawned Acorn, situated mid-right):
 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Which decoded as bin(32), bin(8) and bin(103) take the acorn form:
+
    100000
      1000
   1100111
 ```
-Run for one generation.
-```
-starknet invoke \
-    --network=alpha \
-    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi artifacts/abis/GoL2_contract_abi.json \
-    --function run \
-    --inputs 1
-```
-Calling `view_game` again yields the correct next generation:
+After evolving one generation, and calling for the state again, the
+returned state is:
+
 ```
 0 0 0 0 0 0 0 0 0 0 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
@@ -200,37 +180,15 @@ Or:
        10
 ```
 
-Make a particular cell (row index `9` and column index `9`) become alive
-(not yet metered by token-authority).
-```
-starknet invoke \
-    --network=alpha \
-    --address 0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4 \
-    --abi artifacts/abis/GoL2_contract_abi.json \
-    --function give_life_to_cell \
-    --inputs 9 9
+If for example a user gave life to a particular cell
+(row index `9` and column index `9`). The state would then be:
 
-Returns the addion of a single cell at the tenth row/col:
+```
 0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
-Tenth row: 00000000010000000000000000000000
+Where 4194304 is the binary number: 00000000010000000000000000000000
+
+Column index 9 is '1', or 'alive' now.
 ```
 This single cell would die out in the next generation, and so would not be a
 wise placement, unless other cells are placed in adjacent locations.
-
-## Voyager
-
-Interact using the Voyager browser [here](https://voyager.online/contract/0x03f22c2e44761c7b690acf81db6c46b781bf0de7fb9fc0b2ae4c2367183093b4).
-
----
-
-# Notes
-
-- Todo
-    - Think about how the game will be rendered. Could have a basic python
-    script to draw the grid in the command line as a start. Currently have the grid-based representation implemented in `pytest`.
-    - Think about which/where events are best utilized.
-    - Connect to user authentification
-    - Implement ERC-721 to hold the unique 'receipt of participation'
-    - Restrict the `give_life_to_cell` function to token holders only and
-    restrict quantity of this action per person.

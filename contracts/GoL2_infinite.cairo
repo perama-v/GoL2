@@ -132,7 +132,7 @@ func evolve_and_claim_next_generation{
     ):
     alloc_locals
     let (local last_gen) = current_generation.read()
-    # Limit to one generation per turn. (
+    # Limit to one generation per turn.
     local generations = 1
     local new_gen = last_gen + generations
     # Unpack the stored game
