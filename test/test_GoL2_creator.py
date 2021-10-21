@@ -41,11 +41,13 @@ async def test_create(game_factory):
 
     # First generate 10 credits by progressing another game.
     # From the zero address.
-    '''
+    (index, first_game_id, gen) = await game.newest_game().call()
+
     for i in range(10):
         print(f'Done with {i}')
-        await game.contribute(0).invoke()
-    '''
+        contribute = signer.build_transaction(account,
+            game.contract_address, 'contribute', first_game_id)
+        await contribute.invoke()
 
     row_states = [ 2**(i) for i in range(32) ]
     nonce = 1

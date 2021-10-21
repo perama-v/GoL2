@@ -34,12 +34,13 @@ const DIM = 32
 const CREDIT_REQUIREMENT = 10
 
 ##### Storage #####
+# Game index is predominantly used. Game id is to ensure uniqueness.
 
 # Stores n=dim rows of cell status as a binary representation.
 # For a given game at a given state.
 @storage_var
 func stored_row(
-        game_id : felt,
+        game_index : felt,
         gen : felt,
         row : felt
     ) -> (
@@ -49,7 +50,7 @@ end
 
 # Stores the genesis state hash for a given user.
 @storage_var
-func owner_of_game_id(
+func owner_of_game(
         game_id : felt
     ) -> (
         owner_id : felt
@@ -65,6 +66,14 @@ func game_id_from_game_index(
     ):
 end
 
+@storage_var
+func game_index_from_game_id(
+        game_id : felt
+    ) -> (
+        game_index : felt
+    ):
+end
+
 # Inndex of most recent game.
 @storage_var
 func latest_game_index(
@@ -76,7 +85,7 @@ end
 # Lets you find the latest state of a given game.
 @storage_var
 func latest_game_generation(
-        game_id : felt
+        game_index : felt
     ) -> (
         game_generation : felt
     ):
@@ -90,6 +99,26 @@ func has_credits(
         credits : felt
     ):
 end
+
+# Stores how many games a user has created
+@storage_var
+func user_game_count(
+        owner_id : felt
+    ) -> (
+        count : felt
+    ):
+end
+
+# Stores global game index for a given user as an index of their inventory.
+@storage_var
+func game_index_from_inventory(
+        owner_id : felt,
+        inventory_index : felt
+    ) -> (
+        game_index : felt
+    ):
+end
+
 
 ##################
 
@@ -111,16 +140,16 @@ func spawn{
     let (game_id) = hash_game(acorn, 3)
 
     # Acorn. Has no owner.
-    stored_row.write(game_id=0, gen=0, row=12, value=32)
-    stored_row.write(game_id=0, gen=0, row=13, value=8)
-    stored_row.write(game_id=0, gen=0, row=14, value=103)
+    stored_row.write(game_index=0, gen=0, row=12, value=32)
+    stored_row.write(game_index=0, gen=0, row=13, value=8)
+    stored_row.write(game_index=0, gen=0, row=14, value=103)
 
     # Ensure that spawn is only called once. All other games need
     # credits to begin.
-    let (current_owner) = owner_of_game_id.read(game_id)
+    let (current_owner) = owner_of_game.read(game_id)
     assert current_owner = 0
     let (caller) = get_caller_address()
-    owner_of_game_id.write(game_id, caller)
+    owner_of_game.write(game_id, caller)
 
     game_id_from_game_index.write(0, game_id)
     latest_game_index.write(0)
@@ -197,51 +226,56 @@ func create{
     local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
     let (local game_id) = hash_game(genesis_state, 32)
-    let (local current_owner) = owner_of_game_id.read(game_id)
+    let (local current_owner) = owner_of_game.read(game_id)
     assert current_owner = 0
 
     local syscall_ptr : felt* = syscall_ptr
     # Store the game
-    stored_row.write(game_id=game_id, gen=0, row=0, value=row_0)
-    stored_row.write(game_id=game_id, gen=0, row=1, value=row_1)
-    stored_row.write(game_id=game_id, gen=0, row=2, value=row_2)
-    stored_row.write(game_id=game_id, gen=0, row=3, value=row_3)
-    stored_row.write(game_id=game_id, gen=0, row=4, value=row_4)
-    stored_row.write(game_id=game_id, gen=0, row=5, value=row_5)
-    stored_row.write(game_id=game_id, gen=0, row=6, value=row_6)
-    stored_row.write(game_id=game_id, gen=0, row=7, value=row_7)
-    stored_row.write(game_id=game_id, gen=0, row=8, value=row_8)
-    stored_row.write(game_id=game_id, gen=0, row=9, value=row_9)
-    stored_row.write(game_id=game_id, gen=0, row=10, value=row_10)
-    stored_row.write(game_id=game_id, gen=0, row=11, value=row_11)
-    stored_row.write(game_id=game_id, gen=0, row=12, value=row_12)
-    stored_row.write(game_id=game_id, gen=0, row=13, value=row_13)
-    stored_row.write(game_id=game_id, gen=0, row=14, value=row_14)
-    stored_row.write(game_id=game_id, gen=0, row=15, value=row_15)
-    stored_row.write(game_id=game_id, gen=0, row=16, value=row_16)
-    stored_row.write(game_id=game_id, gen=0, row=17, value=row_17)
-    stored_row.write(game_id=game_id, gen=0, row=18, value=row_18)
-    stored_row.write(game_id=game_id, gen=0, row=19, value=row_19)
-    stored_row.write(game_id=game_id, gen=0, row=20, value=row_20)
-    stored_row.write(game_id=game_id, gen=0, row=21, value=row_21)
-    stored_row.write(game_id=game_id, gen=0, row=22, value=row_22)
-    stored_row.write(game_id=game_id, gen=0, row=23, value=row_23)
-    stored_row.write(game_id=game_id, gen=0, row=24, value=row_24)
-    stored_row.write(game_id=game_id, gen=0, row=25, value=row_25)
-    stored_row.write(game_id=game_id, gen=0, row=26, value=row_26)
-    stored_row.write(game_id=game_id, gen=0, row=27, value=row_27)
-    stored_row.write(game_id=game_id, gen=0, row=28, value=row_28)
-    stored_row.write(game_id=game_id, gen=0, row=29, value=row_29)
-    stored_row.write(game_id=game_id, gen=0, row=30, value=row_30)
-    stored_row.write(game_id=game_id, gen=0, row=31, value=row_31)
+    stored_row.write(game_index=game_index, gen=0, row=0, value=row_0)
+    stored_row.write(game_index=game_index, gen=0, row=1, value=row_1)
+    stored_row.write(game_index=game_index, gen=0, row=2, value=row_2)
+    stored_row.write(game_index=game_index, gen=0, row=3, value=row_3)
+    stored_row.write(game_index=game_index, gen=0, row=4, value=row_4)
+    stored_row.write(game_index=game_index, gen=0, row=5, value=row_5)
+    stored_row.write(game_index=game_index, gen=0, row=6, value=row_6)
+    stored_row.write(game_index=game_index, gen=0, row=7, value=row_7)
+    stored_row.write(game_index=game_index, gen=0, row=8, value=row_8)
+    stored_row.write(game_index=game_index, gen=0, row=9, value=row_9)
+    stored_row.write(game_index=game_index, gen=0, row=10, value=row_10)
+    stored_row.write(game_index=game_index, gen=0, row=11, value=row_11)
+    stored_row.write(game_index=game_index, gen=0, row=12, value=row_12)
+    stored_row.write(game_index=game_index, gen=0, row=13, value=row_13)
+    stored_row.write(game_index=game_index, gen=0, row=14, value=row_14)
+    stored_row.write(game_index=game_index, gen=0, row=15, value=row_15)
+    stored_row.write(game_index=game_index, gen=0, row=16, value=row_16)
+    stored_row.write(game_index=game_index, gen=0, row=17, value=row_17)
+    stored_row.write(game_index=game_index, gen=0, row=18, value=row_18)
+    stored_row.write(game_index=game_index, gen=0, row=19, value=row_19)
+    stored_row.write(game_index=game_index, gen=0, row=20, value=row_20)
+    stored_row.write(game_index=game_index, gen=0, row=21, value=row_21)
+    stored_row.write(game_index=game_index, gen=0, row=22, value=row_22)
+    stored_row.write(game_index=game_index, gen=0, row=23, value=row_23)
+    stored_row.write(game_index=game_index, gen=0, row=24, value=row_24)
+    stored_row.write(game_index=game_index, gen=0, row=25, value=row_25)
+    stored_row.write(game_index=game_index, gen=0, row=26, value=row_26)
+    stored_row.write(game_index=game_index, gen=0, row=27, value=row_27)
+    stored_row.write(game_index=game_index, gen=0, row=28, value=row_28)
+    stored_row.write(game_index=game_index, gen=0, row=29, value=row_29)
+    stored_row.write(game_index=game_index, gen=0, row=30, value=row_30)
+    stored_row.write(game_index=game_index, gen=0, row=31, value=row_31)
 
     # Update trackers.
-    owner_of_game_id.write(game_id, caller)
+    owner_of_game.write(game_id, caller)
+
     let (old_index) = latest_game_index.read()
     let new_index = old_index + 1
     game_id_from_game_index.write(new_index, game_id)
+    game_index_from_game_id.write(game_id, new_index)
     latest_game_index.write(new_index)
-
+    let (prev_game_count) = user_game_count.read(caller)
+    user_game_count.write(caller, prev_game_count + 1)
+    # Index of new = prev_game_count.
+    game_index_from_inventory.write(caller, prev_game_count)
     return ()
 end
 
@@ -254,16 +288,16 @@ func contribute{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        game_id : felt
+        game_index : felt
     ):
     alloc_locals
     let (local prev_generation) = latest_game_generation.read(
-        game_id)
+        game_index)
     # Unpack the stored game.
     # Iterates over rows, then cols to get an array of all cells.
     # Cell_states array is DIM**2 long: One cell per index (no packing).
     let (local cell_states_init : felt*) = alloc()
-    unpack_rows(game_id=game_id, generation=prev_generation,
+    unpack_rows(game_index=game_index, generation=prev_generation,
         cell_states=cell_states_init,row=DIM)
 
     # Evolve the game by one generation.
@@ -271,7 +305,7 @@ func contribute{
         cell_states_init)
     # Pack the game for compact storage.
 
-    save_rows(game_id=game_id, generation=prev_generation + 1,
+    save_rows(game_index=game_index, generation=prev_generation + 1,
         cell_states=cell_states, row=DIM)
 
     # Save the user data.
@@ -281,7 +315,7 @@ func contribute{
     has_credits.write(user, credits + 1)
 
     # Save the current generation for easy retrieval.
-    latest_game_generation.write(game_id, prev_generation + 1)
+    latest_game_generation.write(game_index, prev_generation + 1)
     return ()
 end
 
@@ -299,23 +333,45 @@ func newest_game{
     ):
     let (game_index) = latest_game_index.read()
     let (game_id) = game_id_from_game_index.read(game_index)
-    let (generation) = latest_game_generation.read(game_id)
+    let (generation) = latest_game_generation.read(game_index)
     return (game_index, game_id, generation)
 end
 
-# TODO A function that returns user data (credits, games owned).
+# Returns user data (credits, games owned).
 @view
 func user_data{
         storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }() -> (
-        user_index : felt,
+    }(
+        user_id : felt
+    ) -> (
         game_count : felt,
         credit_count : felt
     ):
+    let (game_count) = user_game_count.read(user_id)
+    let (credit_count) = has_credits.read(user_id)
+    return (game_count, credit_count)
+end
 
-    return (game_index, game_id, generation)
+
+# Returns game index from the index of a users inventory.
+@view
+func user_data{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user_id : felt,
+        index_of_inventory : felt
+    ) -> (
+        game_index : felt
+    ):
+    # E.g., 'Get the game index for the third game of this user'.
+    let (game_index) = game_index_from_inventory.read(user_id,
+        index_of_inventory)
+
+    return (game_index)
 end
 
 # Returns a list of rows for the specified generation.
@@ -396,11 +452,11 @@ func unpack_rows{
         return ()
     end
 
-    unpack_rows(game_id=game_id, generation=generation,
+    unpack_rows(game_index=game_index, generation=generation,
         cell_states=cell_states, row=row-1)
     # Get the binary encoded store.
     # (Note, on first entry, row=1 so row-1 gets the index)
-    let (packed_row) = stored_row.read(game_id=game_id,
+    let (packed_row) = stored_row.read(game_index=game_index,
         gen=generation, row=row-1)
 
     unpack_cols(cell_states=cell_states,
@@ -426,7 +482,7 @@ func save_rows{
     end
 
     save_rows(
-        game_id=game_id,
+        game_index=game_index,
         generation=generation,
         cell_states=cell_states,
         row=row-1)
@@ -437,7 +493,7 @@ func save_rows{
 
     # Permanently store the game state.
     stored_row.write(
-        game_id=game_id,
+        game_index=game_index,
         gen=generation,
         row=row-1,
         value=row_to_store)
