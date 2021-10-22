@@ -78,6 +78,7 @@ async def test_give_life(game_factory):
     alter_row = 5
     alter_col = 5
     invalid_token_id = 1
+
     (id_pre, ) = await game.current_generation_id().call()
     (image_pre) = await game.view_game(id_pre).invoke()
     await display(image_pre)
@@ -91,11 +92,21 @@ async def test_give_life(game_factory):
     await game.evolve_and_claim_next_generation(
             USER_IDS[0]).invoke()
 
+    already_alive_row=13
+    already_alive_col=30
     # Get the details of their new token.
     (user_token_id, _, _, _, _) = await game.get_user_data(
         USER_IDS[0], 0).invoke()
     # Then redeem token.
     assert user_token_id == 2
+
+    with pytest.raises(Exception) as e_info:
+        await game.give_life_to_cell(USER_IDS[0], already_alive_row,
+        already_alive_col, user_token_id).invoke()
+    print(f"Passed: Correctly fails when cell is already alive.")
+
+
+
     await game.give_life_to_cell(USER_IDS[0], alter_row,
         alter_col, user_token_id).invoke()
 

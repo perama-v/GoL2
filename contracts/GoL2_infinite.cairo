@@ -6,7 +6,7 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_or
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
-    assert_not_zero, assert_nn_le)
+    assert_not_zero, assert_nn_le, assert_not_equal)
 from starkware.cairo.common.pow import pow
 from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
@@ -186,7 +186,7 @@ func give_life_to_cell{
     # For testing, skip account contract use. TODO add accounts.
     let user = user_id
 
-    let (owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
+    let (local owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
     # Enable this check when accounts are used.
     assert owner = user
 
@@ -683,8 +683,10 @@ func activate_cell{
     let binary_position = DIM - 1 - col
     let (local bit) = pow(2, binary_position)
     let (gen) = current_generation.read()
-    let (stored) = historical_row.read(gen, row)
-    let (updated) = bitwise_or(bit, stored)
+    let (local stored) = historical_row.read(gen, row)
+    let (local updated) = bitwise_or(bit, stored)
+    # Reject the transaction if the user is going to waste their time.
+    assert_not_equal(stored, updated)
     historical_row.write(gen, row, updated)
 
     return ()
