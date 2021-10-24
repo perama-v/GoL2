@@ -12,6 +12,10 @@ from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
     get_caller_address)
 
+from contracts.utils.packing import pack_cols, unpack_cols
+from contracts.utils.life_rules import (evaluate_rounds,
+    apply_rules, get_adjacent)
+
 ## This is a high-storage implementation that does not require
 ## Events or a token contract.
 
@@ -50,7 +54,6 @@ end
 func owner_of_generation(gen_id : felt) -> (user_id : felt):
 end
 
-# Temporary function to expose generation ownership to frontend.
 # Is a stored list of ID's indexed from zero for every user.
 @storage_var
 func generation_of_owner(
@@ -61,14 +64,21 @@ func generation_of_owner(
     ):
 end
 
-# Temporary function (pending Token) to help frontend track ownership.
+# Returns the total number of tokens owned by a user.
 @storage_var
 func count_tokens_owned(user_id : felt) -> (tokens_owned : felt):
 end
 
-# Temporary function (pending Token) to help frontend track give_life.
+# Returns at which generation of the game a tokens give_life was used.
 @storage_var
 func token_redeemed_at(token_id : felt) -> (gen_id_at_redemption : felt):
+end
+
+# For a given generation, returns the highest redemption index.
+# This way, you can find all the give_life cells at historical states.
+@storage_var
+func highest_redemption_index_of_gen(gen_id : felt) -> (
+    redemption_index_of_token : felt):
 end
 
 # Records the history of the game on chain.
@@ -82,8 +92,7 @@ func historical_row(
     ):
 end
 
-# Temporary function (pending Events) to keep track of give_life.
-# Cell is (row, col) by index.
+# For a given token id, returns the cell as (row, col) by index.
 @storage_var
 func token_gave_life(
         gen_id_of_token : felt,
@@ -156,7 +165,7 @@ func evolve_and_claim_next_generation{
 
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
-    # Store the token_id as a zero-based index of the uesrs token.
+    # Store the token_id as a zero-based index of the users token.
     generation_of_owner.write(user, prev_tokens, new_gen)
     owner_of_generation.write(new_gen, user)
     return ()
@@ -209,12 +218,14 @@ func give_life_to_cell{
     # New redemption index = count - 1 + 1 = count
     token_at_redemption_index.write(redemptions, current_gen)
     redemption_index_of_token.write(current_gen, redemptions)
-
+    # For the current generation overwrite the redemption index.
+    # If multiple give_live actions are used, stores the highest index.
+    highest_redemption_index_of_gen.write(current_gen, redemptions)
     return ()
 end
 
 
-# Returns a the current generation id and generation index.
+# Returns a the current generation id.
 # The index is based on turns while the id is evolution steps.
 @view
 func current_generation_id{
@@ -274,6 +285,23 @@ func token_id_from_redemption_index{
     ):
     let (token_id) = token_at_redemption_index.read(red_index)
     return (token_id)
+end
+
+
+# Returns the highest redemption index at a particular generation.
+@view
+func highest_redemption_index_of_generation{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        generation_id : felt
+    ) -> (
+        redemption_index : felt
+    ):
+    let (red_index) = highest_redemption_index_of_gen.read(
+        generation_id)
+    return (red_index)
 end
 
 
@@ -412,7 +440,8 @@ func get_token_data{
         has_used_give_life : felt,
         generation_during_give_life : felt,
         alive_cell_row : felt,
-        alive_cell_col : felt
+        alive_cell_col : felt,
+        owner : felt
     ):
     alloc_locals
     let (redeemed) = token_redeemed_at.read(token_id)
@@ -423,65 +452,148 @@ func get_token_data{
     local alive_cell_col
     if redeemed == 0:
         assert has_used_give_life = 0
+        assert alive_cell_row = 0
+        assert alive_cell_col = 0
     else:
         assert has_used_give_life = 1
         assert alive_cell_row = alive_cell[0]
         assert alive_cell_col = alive_cell[1]
     end
 
+    let (owner) = owner_of_generation.read(token_id)
+
     return (
         has_used_give_life=has_used_give_life,
         generation_during_give_life=redeemed,
         alive_cell_row=alive_cell_row,
-        alive_cell_col=alive_cell_col
+        alive_cell_col=alive_cell_col,
+        owner=owner
     )
 end
 
-##### Private functions #####
-# Pre-sim. Walk columns for a given row and saves state to an array.
-func unpack_cols{
+# Get a collection of useful contemporary information
+@view
+func latest_useful_state{
         storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        cell_states : felt*,
-        row : felt,
-        col : felt,
-        stored_row : felt
+        enter_zero_or_specific_generation_id : felt
+    ) -> (
+        gen_id, latest_red, a_owner, b_owner, c_owner,
+        r0_id, r0_gen, r0_row, r0_col, r0_owner,
+        r1_id, r1_gen, r1_row, r1_col, r1_owner,
+        r2_id, r2_gen, r2_row, r2_col, r2_owner,
+        r3_id, r3_gen, r3_row, r3_col, r3_owner,
+        r4_id, r4_gen, r4_row, r4_col, r4_owner,
+        r5_id, r5_gen, r5_row, r5_col, r5_owner,
+        r6_id, r6_gen, r6_row, r6_col, r6_owner,
+        r7_id, r7_gen, r7_row, r7_col, r7_owner,
+        r8_id, r8_gen, r8_row, r8_col, r8_owner,
+        r9_id, r9_gen, r9_row, r9_col, r9_owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31
     ):
+    # gen_id = la
     alloc_locals
-    if col == 0:
-        return ()
-    end
+    # If the caller used '0', use the latest ID, otherwise use specified.
+    let (current_id) = current_generation.read()
 
-    unpack_cols(cell_states=cell_states,
-        row=row, col=col-1, stored_row=stored_row)
-    # (Note, on first entry, col=1 so col-1 gets the index)
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
-    # state = 2**column_index AND row_binary
-    # Column zero is the MSB, so (DIM_index - col_index) accesses the bit.
-    let binary_position = (DIM - 1) - (col - 1)
-    let (mask) = pow(2, binary_position)
-    let (state) = bitwise_and(stored_row, mask)
-    # E.g., if in col_index 2, for an alive 'state=4 (0b100)',
-    # convert to 1
-    local alive_or_dead
-    if state == 0:
-        assert alive_or_dead = 0
+    local gen_id : felt
+    if enter_zero_or_specific_generation_id != 0:
+        assert gen_id = enter_zero_or_specific_generation_id
     else:
-        assert alive_or_dead = 1
+        assert gen_id = current_id
     end
-    let index = row * DIM + (col - 1)
-    assert cell_states[index] = alive_or_dead
+    # Returns:
+    # Current generation_id
+    # three images (a=current, b=n-1, c=n-2).
+    # a4 = image a (current image), row index 4 (fifth row).
 
+    # For the given generation, get the index of the latest
+    # give_live redemption.
+    let (latest_red) = highest_redemption_index_of_gen.read(gen_id)
 
-    return ()
+    # TODO if caller is asking for an older generation, perhaps need
+    # fetch for redemption tokens from that generation.
+    # Get token_ids of the 5 most recently redeemed give-life tokens.
+    let (r0_id) = token_id_from_redemption_index(latest_red)
+    let (r1_id) = token_id_from_redemption_index(latest_red - 1)
+    let (r2_id) = token_id_from_redemption_index(latest_red - 2)
+    let (r3_id) = token_id_from_redemption_index(latest_red - 3)
+    let (r4_id) = token_id_from_redemption_index(latest_red - 4)
+    let (r5_id) = token_id_from_redemption_index(latest_red - 5)
+    let (r6_id) = token_id_from_redemption_index(latest_red - 6)
+    let (r7_id) = token_id_from_redemption_index(latest_red - 7)
+    let (r8_id) = token_id_from_redemption_index(latest_red - 8)
+    let (r9_id) = token_id_from_redemption_index(latest_red - 9)
+    # Get the effect of the give_life action (generation, row, col).
+    let (_, r0_gen, r0_row, r0_col, r0_owner) = get_token_data(r0_id)
+    let (_, r1_gen, r1_row, r1_col, r1_owner) = get_token_data(r1_id)
+    let (_, r2_gen, r2_row, r2_col, r2_owner) = get_token_data(r2_id)
+    let (_, r3_gen, r3_row, r3_col, r3_owner) = get_token_data(r3_id)
+    let (_, r4_gen, r4_row, r4_col, r4_owner) = get_token_data(r4_id)
+    let (_, r5_gen, r5_row, r5_col, r5_owner) = get_token_data(r5_id)
+    let (_, r6_gen, r6_row, r6_col, r6_owner) = get_token_data(r6_id)
+    let (_, r7_gen, r7_row, r7_col, r7_owner) = get_token_data(r7_id)
+    let (_, r8_gen, r8_row, r8_col, r8_owner) = get_token_data(r8_id)
+    let (_, r9_gen, r9_row, r9_col, r9_owner) = get_token_data(r9_id)
+
+    let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31) = view_game(gen_id)
+
+    let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31) = view_game(gen_id - 1)
+
+    let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31) = view_game(gen_id - 2)
+
+    let (a_owner) = owner_of_generation.read(gen_id)
+    let (b_owner) = owner_of_generation.read(gen_id - 1)
+    let (c_owner) = owner_of_generation.read(gen_id - 2)
+
+    return (gen_id, latest_red, a_owner, b_owner, c_owner,
+        r0_id, r0_gen, r0_row, r0_col, r0_owner,
+        r1_id, r1_gen, r1_row, r1_col, r1_owner,
+        r2_id, r2_gen, r2_row, r2_col, r2_owner,
+        r3_id, r3_gen, r3_row, r3_col, r3_owner,
+        r4_id, r4_gen, r4_row, r4_col, r4_owner,
+        r5_id, r5_gen, r5_row, r5_col, r5_owner,
+        r6_id, r6_gen, r6_row, r6_col, r6_owner,
+        r7_id, r7_gen, r7_row, r7_col, r7_owner,
+        r8_id, r8_gen, r8_row, r8_col, r8_owner,
+        r9_id, r9_gen, r9_row, r9_col, r9_owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31)
 end
 
+##### Private functions #####
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
         storage_ptr : Storage*,
@@ -505,159 +617,6 @@ func unpack_rows{
         row=row-1, col=DIM, stored_row=stored_row)
 
     return ()
-end
-
-# Executes rounds and returns an array with final state.
-func evaluate_rounds{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        rounds : felt,
-        cell_states : felt*
-    ) -> (
-        cell_states : felt*
-    ):
-    alloc_locals
-    if rounds == 0:
-        return(cell_states=cell_states)
-    end
-
-    let (cell_states) = evaluate_rounds(rounds=rounds-1, cell_states=cell_states)
-
-    let (local pending_states : felt*) = alloc()
-    # Fill up pending_states based on cell_states and GoL rules
-    apply_rules(cell=DIM*DIM, cell_states=cell_states,
-        pending_states=pending_states)
-
-    # Return the pending states as canonical.
-    return (cell_states=pending_states)
-end
-
-# Steps through every cell, checking neighbour states.
-func apply_rules{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        cell : felt,
-        cell_states : felt*,
-        pending_states : felt*
-    ):
-    alloc_locals
-    if cell == 0:
-        return ()
-    end
-
-    apply_rules(cell=cell-1, cell_states=cell_states,
-        pending_states=pending_states)
-
-    # (Note, on first entry, cell=1 so cell-1 gets the index).
-    local cell_idx = cell - 1
-
-    local storage_ptr : Storage* = storage_ptr
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-
-    # Get indices of neighbours.
-    let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx)
-
-    local range_check_ptr = range_check_ptr
-    # Sum of 8 surrounding cells.
-    let score = cell_states[L] + cell_states[R] +
-        cell_states[D] + cell_states[U] +
-        cell_states[LU] + cell_states[RU] +
-        cell_states[LD] + cell_states[RD]
-
-    # Final outcome
-    # If alive
-    if cell_states[cell_idx] == 1:
-        # With good neighbours
-        if (score - 2) * (score - 3) == 0:
-            # Live
-            assert pending_states[cell_idx] = 1
-        else:
-            assert pending_states[cell_idx] = 0
-        end
-    else:
-        if score == 3:
-            assert pending_states[cell_idx] = 1
-        else:
-            assert pending_states[cell_idx] = 0
-        end
-
-    end
-
-    return ()
-end
-
-@external
-func get_adjacent{
-        range_check_ptr
-    }(
-        cell_idx : felt
-    ) -> (
-        L : felt,
-        R : felt,
-        U : felt,
-        D : felt,
-        LU : felt,
-        RU : felt,
-        LD : felt,
-        RD : felt
-    ):
-    # cell_states and pending_states structure:
-    #         Row 0               Row 1              Row 2
-    #  <-------DIM-------> <-------DIM-------> <-------DIM------->
-    # [0,0,0,0,1,...,1,0,1,0,1,1,0,...,1,0,0,1,1,1,0,1...,0,0,1,0...]
-    #  ^col_0     col_DIM^ ^col_0     col_DIM^ ^col_0
-    let (row, col) = unsigned_div_rem(cell_idx, DIM)
-    let len = DIM * DIM
-    let row_start = row * DIM
-    # LU U RU
-    # L  .  R
-    # LD D RD
-    # Wrap around: Index neighbours using modulo.
-
-    # For a neighbour moving left and wrapping around:
-    # 1. Move left by one (cell_idx - 1).
-    # 2. Move to range [0, DIM] (- row_start).
-    # 3. Add DIM to make positive (+ DIM).
-    # 4. Take modulo DIM to keep in range [0, DIM] (% DIM).
-    # 5. Add row for index of wrapped neighbour (+ row_start).
-    let (_, L) = unsigned_div_rem(cell_idx - 1 - row_start + DIM,
-        DIM)
-    let L = L + row_start
-
-    # Moving right and wrapping around from the left:
-    # 1. Move right by one (cell_idx + 1).
-    # 2. Move to range [0, DIM] (- row_start).
-    # 3. Take modulo DIM to keep in range [0, DIM] (% DIM).
-    # 4. Add row for index of wrapped neighbour (+ row_start).
-    let (_, R) = unsigned_div_rem(cell_idx + 1 - row_start, DIM)
-    let R = R + row_start
-
-    # Moving down and wrapping down from the top:
-    # 1. Move down by one (cell_idx + DIM).
-    # 2. If beyond len, wrap (% len).
-    let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
-
-    # Moving up and wrapping up from bottom:
-    # 1. Move up by one (cell_idx - DIM).
-    # 2. Add len to make positive if above grid (+ len).
-    # 3. Modulo len (% len).
-    let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
-
-    # First take L or R position and then apply U or D operation.
-    let (_, LU) = unsigned_div_rem(L - DIM + len, len)
-    let (_, RU) = unsigned_div_rem(R - DIM + len, len)
-    let (_, LD) = unsigned_div_rem(L + DIM, len)
-    let (_, RD) = unsigned_div_rem(R + DIM, len)
-
-    return (L=L, R=R, U=U, D=D, LU=LU, RU=RU, LD=LD,
-        RD=RD)
 end
 
 
@@ -690,59 +649,6 @@ func activate_cell{
     historical_row.write(gen, row, updated)
 
     return ()
-end
-
-# Post-sim. Walk columns for a given row and saves array to state.
-func pack_cols{
-        storage_ptr : Storage*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        cell_states : felt*,
-        row : felt,
-        col : felt,
-        row_to_store : felt
-    ) -> (
-        row_to_store : felt
-    ):
-    alloc_locals
-    if col == 0:
-        return (row_to_store)
-    end
-    # Loops over columns, adding to a single felt using a mask.
-    let (local row_to_store) = pack_cols(cell_states=cell_states,
-        row=row, col=col-1, row_to_store=row_to_store)
-    # (Note, on first entry, col=1 so col-1 gets the index)
-
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
-
-
-    # Get index of cell in cell_state for this row-col combo.
-    # "Move 'row length' blocks down list, then add the column index".
-    let index = row * DIM + (col - 1)
-    let state = cell_states[index]
-
-
-    # col=0 goes in MSB. col=DIM-1 goes in LSB.
-    let binary_position = DIM - (col - 1) - 1
-    # 000...00000000011 row_to_store (old aggregator)
-    # 000...00000001000 cell_binary (cell state)
-    # 000...00000001011 bitwise OR (new aggregator)
-
-    # Binary = state * bit = state * 2**column_index
-    # E.g., For index-0: 1 * 2**0 = 0b1
-    # E.g., For index-2: 1 * 2**2 = 0b100
-
-    let (bit) = pow(2, binary_position)
-    let cell_binary = state * bit
-    # store = store OR row_binary
-    let (new_row) = bitwise_or(cell_binary, row_to_store)
-
-    return (new_row)
 end
 
 # Post-sim. Walk rows then columns to store state.

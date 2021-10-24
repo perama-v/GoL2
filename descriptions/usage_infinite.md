@@ -14,6 +14,32 @@ one. The player is then recorded as owning that generation, which
 is represented by a 'token' inside the contract, whose ID matches
 the generation it was minted in.
 
+The simplest way to get the current game data is with:
+
+```
+latest_useful_state(0)
+
+Returns:
+- 1 Current (or specified) generation ID.
+- 1 The latest index of redeemed give life actions.
+- 1 The owner of the current (or specified) generation 'A'.
+- 1 The owner of preceeding generation 'B'.
+- 1 The owner of generation 'C'.
+- 50 The details of ten most recently redeemed tokens.
+    - Token id, redemption generation, row index, col index, owner.
+- 32 The rows of generation 'A'.
+- 32 The rows of generation 'B'.
+- 32 The rows of generation 'C'.
+```
+The above result includes the game generation, ten most recent claimed
+tokens, and the three most recent game states. The `0` will cause
+the function to return the most recent generation. A specific game
+generation can be specified instead and it will work backward from that
+point (that generation and the preceeding two, redeemed tokens from
+that generation and earlier).
+
+Alternatively, individual game states can be inspected.
+
 1. Select a generation id to view, or use `current_generation_id()`
 to retrieve the current generation.
 2. Get the current game state with `view_game(id)`
@@ -79,10 +105,10 @@ starknet deploy --contract artifacts/GoL2_infinite_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
-Contract address: 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db
-Transaction ID: 262821
+Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
+Transaction ID: 305293
 
-starknet tx_status --network=alpha --id=262821
+starknet tx_status --network=alpha --id=305293
 
 starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
@@ -97,19 +123,19 @@ Spawn the game (one-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function spawn
 
 Invoke transaction was sent.
-Contract address: 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db
-Transaction ID: 262844
+Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
+Transaction ID: 305310
 ```
 View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function view_game \
     --inputs 1
@@ -163,14 +189,14 @@ Make user 1 (testing pre-accounts) evolve one generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function evolve_and_claim_next_generation \
     --inputs 1
 
 Invoke transaction was sent.
-Contract address: 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db
-Transaction ID: 262846
+Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
+Transaction ID: 305314
 ```
 Calling `view_game` again yields the correct next generation:
 ```
@@ -186,7 +212,7 @@ See how many tokens user 1 has now:
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function user_token_count \
     --inputs 1
@@ -199,7 +225,7 @@ the first token for this user. The data returned is: `(token_id, has_used_give_l
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function get_user_data \
     --inputs 1 0
@@ -216,21 +242,21 @@ specifying that token id 2 is being redeemed.
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function give_life_to_cell \
     --inputs 1 9 9 2
 
 Invoke transaction was sent.
-Contract address: 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db
-Transaction ID: 262847
+Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
+Transaction ID: 305316
 ```
 
 We can check the current game generation:
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function current_generation_id
 2
@@ -240,7 +266,7 @@ The generation can be used to view the game:
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function view_game \
     --inputs 2
@@ -257,14 +283,14 @@ Confirm this by having user 23 have a turn, evolving 1 generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
     --function evolve_and_claim_next_generation \
     --inputs 23
 
 Invoke transaction was sent.
-Contract address: 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db
-Transaction ID: 262849
+Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
+Transaction ID: 305318
 ```
 Then check that the isolated cell has died, first we can check that
 the game is correctly at generation 3. Expected: generation 3
@@ -272,28 +298,19 @@ the game is correctly at generation 3. Expected: generation 3
 ```
 starknet call \
     --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
+    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
     --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function current_generation_id
-3
-```
-Then call for the image:
-```
-starknet call \
-    --network=alpha \
-    --address 0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function view_game \
-    --inputs 3
+    --function latest_useful_state \
+    --inputs 0
 
-0 0 0 0 0 0 0 0 0 0 0 0 32 46 41 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+2 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```
-Note that row index 9 value is 0, confirming that the cell has died out
-for having too few neighbours, as per the Rules of Life.
+The above result includes the game generation, ten most recent claimed
+tokens, and the three most recent game states.
 
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db).
+Interact using the Voyager browser [here](https://voyager.online/contract/0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9).
 
 
 
