@@ -70,6 +70,11 @@ async def test_game_flow(game_factory):
         print(f"image_{index}:")
         await display(image)
 
+    (info) = await game.latest_useful_state(0).call()
+    # TODO - add some checks on the two elements below (images, info)
+    #print('images', images)
+    #print('info', info)
+
 
 @pytest.mark.asyncio
 async def test_give_life(game_factory):
@@ -125,7 +130,17 @@ async def test_give_life(game_factory):
             4, user_token_id).invoke()
     print('Passed: Token cannot be redeemed twice')
 
+async def display(image):
+    print('')
+    [
+        print(format(image[row], '#034b').replace('0b','')
+        .replace('1','■ ').replace('0','. '))
+        for row in range(DIM)
+    ]
+    return
 
+'''
+Not for active testing - can activate by making get_adjacent @external.
 @pytest.mark.asyncio
 async def test_edge_wrapping(game_factory):
     # Start with freshly spawned game
@@ -165,12 +180,4 @@ async def test_edge_wrapping(game_factory):
     assert BL.L == bottom_right
     assert BL.D == top_left
     assert BL.LD == top_right
-
-async def display(image):
-    print('')
-    [
-        print(format(image[row], '#034b').replace('0b','')
-        .replace('1','■ ').replace('0','. '))
-        for row in range(DIM)
-    ]
-    return
+'''
