@@ -80,6 +80,15 @@ async def test_create(game_factory):
     view([im])
     print('Above is the first game after being progressed 10 times.')
 
+    # Test harvesting functions
+    (recent_games) = await game.get_recently_created(0).call()
+    (recent_generations) = await game.get_recent_generations_of_game(0).call()
+    (user_data) = await game.get_user_data(account.contract_address, 0).call()
+
+    print(recent_games)
+    print(recent_generations)
+    print(user_data)
+
 
 def view(images):
     # For an even grid appearance:

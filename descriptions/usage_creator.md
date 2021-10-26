@@ -8,20 +8,65 @@ Redeem 10 credits and design a new game.
 
 ## Data fetching flow: General Data
 
+Game index: The number used to reference a game (allocated sequentially)
+Game generation: The evolutionary stage of a particular game.
+Game id: A game hash used internally to check new games are not duplicates.
+
 This version of game indexes all the games. Each game has a
-current generation, which can be used to view the currnent (or
-any historical) game state.
+current generation, which can be used to view the current (or
+any historical) game state. The game_id is a unique game hash of
+the spawn state and is just used for uniqueness checks.
+
+An efficient function to get recently made games is:
+
+```
+get_recently_created(0)
+
+Returns data about the 5 most recently created games (or nth game
+if 0 is replaced by n):
+- 1 game index of the latest game to be made (or the one specified).
+- 5 current generations of the 5 most recent games.
+- 5 owners of those games
+- 5 x 32 rows, starting with the most recently created game.
+```
+
+A function to get the most recent states of a particular game is:
+```
+get_recent_generations_of_game(0)
+
+Where 0 will collect the most recent game (or a particular game
+if n replaces 0).
+
+Returns:
+- 1 The owner
+- 5 x 32 rows, starting with the most recent generation for
+the specified game.
+- 32 rows for the initial state of the specified game.
+```
+
+A function to get data for a particular user is:
+```
+get_user_data(user_address, 0)
+
+This fetches the latest 5 tokens a user owns. Replace 0 with n to
+get a particular token at that inventory index (and the preceeding 4)
+
+Returns:
+- 1 The number of tokens owned
+- 1 The number of credits owned
+- 5 The game index for the specified game and preceeding games in
+the inventory. Starts with most recent.
+- 5 The current generations of those games
+- 5 x 32 The rows of those games )
+```
+
+Smaller single purpose functions also exist e.g.,
 
 1. See how many games there are by getting the latest index, then
-selecte a game index.
+selecting a game index.
 2. Select a generation id to view, or use `current_generation_id()`
 to retrieve the current generation.
-3. Get the current game state with `view_game(id)`
-
-This returns the stored 32 rows for that generation.
-
-User data can be fetched to see credit count and any games owned.
-
+3. Get the current game state with `view_game(id)`. This returns the stored 32 rows for that generation.
 
 ### Compilation
 
@@ -54,10 +99,10 @@ starknet deploy --contract artifacts/GoL2_creator_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295422
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
+Transaction ID: 311866
 
-starknet tx_status --network=alpha --id=295422
+starknet tx_status --network=alpha --id=311866
 
 starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
@@ -72,19 +117,16 @@ Spawn the game (one-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function spawn
 
-Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295426
 ```
 View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function view_game \
     --inputs 0 0
@@ -138,13 +180,13 @@ Make the zero-address (testing pre-accounts) evolve one generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function contribute \
     --inputs 0
 
 Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
 Transaction ID: 295433
 ```
 Calling `view_game` again yields the correct next generation:
@@ -162,7 +204,7 @@ will return `game_count` (will be zero) and `credit_count`.
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function user_counts \
     --inputs 0
@@ -176,7 +218,7 @@ result should be zero.
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function specific_game_of_user \
     --inputs 0 0
@@ -189,20 +231,20 @@ a sparsely populated canvas.
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function create \
     --inputs 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295448
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
+Transaction ID: 311874
 ```
 
 
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5).
+Interact using the Voyager browser [here](https://voyager.online/contract/0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db).
 
 
 
