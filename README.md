@@ -36,10 +36,10 @@ There are two modes: Inifinite and Creator
     - [Creator](descriptions/frontend_spec_creator.md)
 - Example deployments
     - [Infinite](https://voyager.online/contract/0x06dd56f17fba09c62d9a1f3542f184de7b157eb178b13661d7d9ed44f977d1db#readContract)
-    - [Creator](https://voyager.online/contract/0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5#readContract) 
+    - [Creator](https://voyager.online/contract/0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db#readContract)
     - Note that calling these functions in the explorer will originate
 transactions from the zero-address. Calling from the Account directly will follow
-as wallet/SDK infrastructure is connected.  
+as wallet/SDK infrastructure is connected.
 
 
 ### Infinite

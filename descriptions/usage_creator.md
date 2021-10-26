@@ -99,10 +99,10 @@ starknet deploy --contract artifacts/GoL2_creator_compiled.json \
     --network=alpha
 
 Deploy transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295422
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
+Transaction ID: 311866
 
-starknet tx_status --network=alpha --id=295422
+starknet tx_status --network=alpha --id=311866
 
 starknet deploy --contract artifacts/account_compiled.json \
     --network=alpha
@@ -117,19 +117,16 @@ Spawn the game (one-off operation).
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function spawn
 
-Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295426
 ```
 View the game state (as a list of 32 binary-encoded values).
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function view_game \
     --inputs 0 0
@@ -183,13 +180,13 @@ Make the zero-address (testing pre-accounts) evolve one generation:
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function contribute \
     --inputs 0
 
 Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
 Transaction ID: 295433
 ```
 Calling `view_game` again yields the correct next generation:
@@ -207,7 +204,7 @@ will return `game_count` (will be zero) and `credit_count`.
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function user_counts \
     --inputs 0
@@ -221,7 +218,7 @@ result should be zero.
 ```
 starknet call \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function specific_game_of_user \
     --inputs 0 0
@@ -234,20 +231,20 @@ a sparsely populated canvas.
 ```
 starknet invoke \
     --network=alpha \
-    --address 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5 \
+    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
     --abi artifacts/abis/GoL2_creator_contract_abi.json \
     --function create \
     --inputs 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Invoke transaction was sent.
-Contract address: 0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5
-Transaction ID: 295448
+Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
+Transaction ID: 311874
 ```
 
 
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x07dd3c84222f069581d928d9a25ad506be696920e1268a957a0ff568ec0930f5).
+Interact using the Voyager browser [here](https://voyager.online/contract/0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db).
 
 
 
