@@ -8,7 +8,7 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
 from starkware.cairo.common.hash_state import (hash_init,
     hash_update, HashState)
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
-    assert_not_zero, assert_nn_le, assert_le)
+    assert_not_zero, assert_nn_le, assert_le, assert_not_equal)
 from starkware.cairo.common.pow import pow
 from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
@@ -234,7 +234,7 @@ func create{
     # Get the id of the very first game.
     let (spawn_id) = game_index_from_game_id.read(0)
     # Make sure it is different.
-    assert spawn_id != game_id
+    assert_not_equal(spawn_id, game_id)
 
     local syscall_ptr : felt* = syscall_ptr
     let (current_index) = latest_game_index.read()
@@ -469,8 +469,8 @@ func get_recently_created{
         range_check_ptr
     }(
         enter_zero_or_specific_game_index : felt
-    ) -> (
-        a_gen, b_gen, c_gen, d_gen, c_gen,
+    ) -> (game_index,
+        a_gen, b_gen, c_gen, d_gen, e_gen,
         a_owner, b_owner, c_owner, d_owner, e_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
         a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
@@ -500,8 +500,8 @@ func get_recently_created{
     # If the caller used '0', use the latest ID, otherwise use specified.
     let (index) = latest_game_index.read()
     local game_index : felt
-    if enter_zero_or_specific_generation_id != 0:
-        assert game_index = enter_zero_or_specific_generation_id
+    if enter_zero_or_specific_game_index != 0:
+        assert game_index = enter_zero_or_specific_game_index
     else:
         assert game_index = index
     end
@@ -543,7 +543,8 @@ func get_recently_created{
     let (d_owner) = owner_of_game.read(game_index - 3)
     let (e_owner) = owner_of_game.read(game_index - 4)
 
-    return (a_gen, b_gen, c_gen, d_gen, c_gen,
+    return (game_index,
+        a_gen, b_gen, c_gen, d_gen, e_gen,
         a_owner, b_owner, c_owner, d_owner, e_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
         a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
@@ -566,6 +567,106 @@ func get_recently_created{
         e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
         e30, e31)
 end
+
+
+# Get a collection of recently created (or specified) games.
+@view
+func get_recent_generations_of_game{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        enter_zero_or_specific_game_index : felt
+    ) -> (
+        owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31,
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31,
+        e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31
+    ):
+    # Can return the states of a single game
+    # for indices n, n-1, n-2, n-3, n-4, where
+    # n is the the specified index. If the index specified is 0,
+    # the n is set to the latest ga.
+    alloc_locals
+    # If the caller used '0', use the latest ID, otherwise use specified.
+    let (index) = latest_game_index.read()
+    local game_index : felt
+    if enter_zero_or_specific_game_index != 0:
+        assert game_index = enter_zero_or_specific_game_index
+    else:
+        assert game_index = index
+    end
+
+    let (local gen) = latest_game_generation.read(game_index)
+    # Fetch images for the latest generations
+    let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31) = view_game(game_index, gen)
+
+    let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31) = view_game(game_index, gen - 1)
+
+    let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31) = view_game(game_index, gen - 2)
+
+    let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31) = view_game(game_index, gen - 3)
+
+    let (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31) = view_game(game_index, gen - 4)
+
+    let (owner) = owner_of_game.read(game_index)
+
+    return (owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31,
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31,
+        e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31)
+end
+
+# View games and tokens of a particular user.
 
 
 ##### Private functions #####
