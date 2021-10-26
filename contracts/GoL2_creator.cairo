@@ -51,7 +51,7 @@ end
 # Stores the genesis state hash for a given user.
 @storage_var
 func owner_of_game(
-        game_id : felt
+        game_index : felt
     ) -> (
         owner_id : felt
     ):
@@ -146,12 +146,14 @@ func spawn{
 
     # Ensure that spawn is only called once. All other games need
     # credits to begin.
-    let (current_owner) = owner_of_game.read(game_id)
-    assert current_owner = 0
+    let (current_spawn_id) = game_id_from_game_index.read(0)
+    assert current_spawn_id = 0
     let (caller) = get_caller_address()
-    owner_of_game.write(game_id, caller)
+    # Store the zeroth-index game as owned by the caller of spawn().
+    owner_of_game.write(0, caller)
 
     game_id_from_game_index.write(0, game_id)
+    game_index_from_game_id.write(game_id, 0)
     latest_game_index.write(0)
     return ()
 end
@@ -226,8 +228,13 @@ func create{
     local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
     let (local game_id) = hash_game(genesis_state, 32)
-    let (local current_owner) = owner_of_game.read(game_id)
-    assert current_owner = 0
+    let (existing_index) = game_index_from_game_id.read(game_id)
+    # Ensure that the game has not yet been stored to an index.
+    assert existing_index = 0
+    # Get the id of the very first game.
+    let (spawn_id) = game_index_from_game_id.read(0)
+    # Make sure it is different.
+    assert spawn_id != game_id
 
     local syscall_ptr : felt* = syscall_ptr
     let (current_index) = latest_game_index.read()
@@ -267,7 +274,7 @@ func create{
     stored_row.write(game_index=idx, gen=0, row=31, value=row_31)
 
     # Update trackers.
-    owner_of_game.write(game_id, caller)
+    owner_of_game.write(idx, caller)
 
     let (old_index) = latest_game_index.read()
     let new_index = old_index + 1
@@ -400,7 +407,7 @@ func view_game{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        game_id : felt,
+        game_index : felt,
         gen : felt
     ) -> (
         row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
@@ -413,38 +420,38 @@ func view_game{
         row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
     ):
 
-    let (row_0) = stored_row.read(game_id, gen, 0)
-    let (row_1) = stored_row.read(game_id, gen, 1)
-    let (row_2) = stored_row.read(game_id, gen, 2)
-    let (row_3) = stored_row.read(game_id, gen, 3)
-    let (row_4) = stored_row.read(game_id, gen, 4)
-    let (row_5) = stored_row.read(game_id, gen, 5)
-    let (row_6) = stored_row.read(game_id, gen, 6)
-    let (row_7) = stored_row.read(game_id, gen, 7)
-    let (row_8) = stored_row.read(game_id, gen, 8)
-    let (row_9) = stored_row.read(game_id, gen, 9)
-    let (row_10) = stored_row.read(game_id, gen, 10)
-    let (row_11) = stored_row.read(game_id, gen, 11)
-    let (row_12) = stored_row.read(game_id, gen, 12)
-    let (row_13) = stored_row.read(game_id, gen, 13)
-    let (row_14) = stored_row.read(game_id, gen, 14)
-    let (row_15) = stored_row.read(game_id, gen, 15)
-    let (row_16) = stored_row.read(game_id, gen, 16)
-    let (row_17) = stored_row.read(game_id, gen, 17)
-    let (row_18) = stored_row.read(game_id, gen, 18)
-    let (row_19) = stored_row.read(game_id, gen, 19)
-    let (row_20) = stored_row.read(game_id, gen, 20)
-    let (row_21) = stored_row.read(game_id, gen, 21)
-    let (row_22) = stored_row.read(game_id, gen, 22)
-    let (row_23) = stored_row.read(game_id, gen, 23)
-    let (row_24) = stored_row.read(game_id, gen, 24)
-    let (row_25) = stored_row.read(game_id, gen, 25)
-    let (row_26) = stored_row.read(game_id, gen, 26)
-    let (row_27) = stored_row.read(game_id, gen, 27)
-    let (row_28) = stored_row.read(game_id, gen, 28)
-    let (row_29) = stored_row.read(game_id, gen, 29)
-    let (row_30) = stored_row.read(game_id, gen, 30)
-    let (row_31) = stored_row.read(game_id, gen, 31)
+    let (row_0) = stored_row.read(game_index, gen, 0)
+    let (row_1) = stored_row.read(game_index, gen, 1)
+    let (row_2) = stored_row.read(game_index, gen, 2)
+    let (row_3) = stored_row.read(game_index, gen, 3)
+    let (row_4) = stored_row.read(game_index, gen, 4)
+    let (row_5) = stored_row.read(game_index, gen, 5)
+    let (row_6) = stored_row.read(game_index, gen, 6)
+    let (row_7) = stored_row.read(game_index, gen, 7)
+    let (row_8) = stored_row.read(game_index, gen, 8)
+    let (row_9) = stored_row.read(game_index, gen, 9)
+    let (row_10) = stored_row.read(game_index, gen, 10)
+    let (row_11) = stored_row.read(game_index, gen, 11)
+    let (row_12) = stored_row.read(game_index, gen, 12)
+    let (row_13) = stored_row.read(game_index, gen, 13)
+    let (row_14) = stored_row.read(game_index, gen, 14)
+    let (row_15) = stored_row.read(game_index, gen, 15)
+    let (row_16) = stored_row.read(game_index, gen, 16)
+    let (row_17) = stored_row.read(game_index, gen, 17)
+    let (row_18) = stored_row.read(game_index, gen, 18)
+    let (row_19) = stored_row.read(game_index, gen, 19)
+    let (row_20) = stored_row.read(game_index, gen, 20)
+    let (row_21) = stored_row.read(game_index, gen, 21)
+    let (row_22) = stored_row.read(game_index, gen, 22)
+    let (row_23) = stored_row.read(game_index, gen, 23)
+    let (row_24) = stored_row.read(game_index, gen, 24)
+    let (row_25) = stored_row.read(game_index, gen, 25)
+    let (row_26) = stored_row.read(game_index, gen, 26)
+    let (row_27) = stored_row.read(game_index, gen, 27)
+    let (row_28) = stored_row.read(game_index, gen, 28)
+    let (row_29) = stored_row.read(game_index, gen, 29)
+    let (row_30) = stored_row.read(game_index, gen, 30)
+    let (row_31) = stored_row.read(game_index, gen, 31)
 
     return (row_0, row_1, row_2, row_3, row_4, row_5,
         row_6, row_7, row_8, row_9, row_10, row_11,
@@ -453,6 +460,113 @@ func view_game{
         row_24, row_25, row_26, row_27, row_28, row_29,
         row_30, row_31)
 end
+
+# Get a collection of recently created (or specified) games.
+@view
+func get_recently_created{
+        storage_ptr : Storage*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        enter_zero_or_specific_game_index : felt
+    ) -> (
+        a_gen, b_gen, c_gen, d_gen, c_gen,
+        a_owner, b_owner, c_owner, d_owner, e_owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31,
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31,
+        e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31
+    ):
+    # Can return the games for indices n, n-1, n-2, n-3, n-4, where
+    # n is the the specified index. If the index specified is 0,
+    # the n is set to the latest game.
+    alloc_locals
+    # If the caller used '0', use the latest ID, otherwise use specified.
+    let (index) = latest_game_index.read()
+    local game_index : felt
+    if enter_zero_or_specific_generation_id != 0:
+        assert game_index = enter_zero_or_specific_generation_id
+    else:
+        assert game_index = index
+    end
+
+    # Fetch images for the latest games
+    let (local a_gen) = latest_game_generation.read(game_index)
+    let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31) = view_game(game_index, a_gen)
+
+    let (local b_gen) = latest_game_generation.read(game_index - 1)
+    let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31) = view_game(game_index - 1, b_gen)
+
+    let (local c_gen) = latest_game_generation.read(game_index - 2)
+    let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31) = view_game(game_index - 2, c_gen)
+
+    let (local d_gen) = latest_game_generation.read(game_index - 3)
+    let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31) = view_game(game_index - 3, d_gen)
+
+    let (local e_gen) = latest_game_generation.read(game_index - 4)
+    let (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31) = view_game(game_index - 4, e_gen)
+
+    let (a_owner) = owner_of_game.read(game_index)
+    let (b_owner) = owner_of_game.read(game_index - 1)
+    let (c_owner) = owner_of_game.read(game_index - 2)
+    let (d_owner) = owner_of_game.read(game_index - 3)
+    let (e_owner) = owner_of_game.read(game_index - 4)
+
+    return (a_gen, b_gen, c_gen, d_gen, c_gen,
+        a_owner, b_owner, c_owner, d_owner, e_owner,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
+        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
+        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
+        a30, a31,
+        b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
+        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
+        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
+        b30, b31,
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
+        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
+        c30, c31,
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
+        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
+        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
+        d30, d31,
+        e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
+        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
+        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
+        e30, e31)
+end
+
 
 ##### Private functions #####
 # Pre-sim. Walk rows then columns to build state.
