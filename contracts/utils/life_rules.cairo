@@ -2,14 +2,13 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import unsigned_div_rem
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
-from starkware.starknet.common.storage import Storage
 
 const DIM = 32
 
 
 # Executes rounds and returns an array with final state.
 func evaluate_rounds{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -37,7 +36,7 @@ end
 
 # Steps through every cell, checking neighbour states.
 func apply_rules{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -57,7 +56,6 @@ func apply_rules{
     # (Note, on first entry, cell=1 so cell-1 gets the index).
     local cell_idx = cell - 1
 
-    local storage_ptr : Storage* = storage_ptr
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
 
