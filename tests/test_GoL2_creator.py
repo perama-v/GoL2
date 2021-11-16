@@ -67,8 +67,8 @@ async def test_create(game_factory):
     response = await game.newest_game().call()
     (first_index, first_game_id, newest_gen) = response.result
 
-    nonce = 1
-    for i in range(10):
+    N_CONTRIB = 10
+    for i in range(N_CONTRIB):
         print(f'Done with {i}')
 
         await signers[0].send_transaction(
@@ -78,11 +78,11 @@ async def test_create(game_factory):
             calldata=[first_game_id])
 
     # Make sure credits were given.
-    (game_count, credit_count) = await game.user_counts(
-            accounts[0].contract_address).call().result
-
+    response = await game.user_counts(
+            accounts[0].contract_address).call()
+    (game_count, credit_count) = response.result
     assert game_count == 0
-    assert credit_count == 10
+    assert credit_count == N_CONTRIB
 
     # Redeem credits
     row_states = [ 2**(i) for i in range(32) ]
@@ -95,31 +95,33 @@ async def test_create(game_factory):
 
 
     # Check that the user has a game.
-    (game_index, ) = await game.specific_game_of_user(
+    response = await game.specific_game_of_user(
         accounts[0].contract_address, 0).call()
-    assert game_index == first_index + 1
+    assert response.result.game_index == first_index + 1
 
     # Check that the game was recorded as the latest game.
-    (index, id, gen) = await game.newest_game().call()
+    response = await game.newest_game().call()
+    index = response.result.game_index
     assert index == first_index + 1
 
     im = await game.view_game(index, 0).call()
     view([im])
     print('Above is the newly created game')
 
-    (gen,) = await game.generation_of_game(first_index).call()
+    response = await game.generation_of_game(first_index).call()
+    gen = response.result.generation
     im = await game.view_game(first_index, gen).call()
     view([im])
     print('Above is the first game after being progressed 10 times.')
 
     # Test harvesting functions
-    (recent_games) = await game.get_recently_created(0).call()
-    (recent_generations) = await game.get_recent_generations_of_game(0).call()
-    (user_data) = await game.get_user_data(accounts[0].contract_address, 0).call()
+    recent_games = await game.get_recently_created(0).call()
+    recent_generations = await game.get_recent_generations_of_game(0).call()
+    user_data = await game.get_user_data(accounts[0].contract_address, 0).call()
 
-    print(recent_games)
-    print(recent_generations)
-    print(user_data)
+    print(recent_games.result)
+    print(recent_generations.result)
+    print(user_data.result)
 
 
 def view(images):
