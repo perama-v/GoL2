@@ -83,7 +83,8 @@ async def test_game_flow(game_factory):
 
         response = await game.current_generation_id().call()
         id = response.result.gen_id
-        im = await game.view_game(id).call()
+        response = await game.view_game(id).call()
+        (im) = response.result
         images.append(im)
         assert id == prev_id + gens_per_turn
         prev_id = id
