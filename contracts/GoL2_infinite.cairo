@@ -582,7 +582,96 @@ func latest_useful_state{
         c30, c31)
 end
 
+# Pass a list of generation ids to fetch multiple states.
+@view
+func get_arbiratry_state_arrays{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        gen_ids_len : felt,
+        gen_ids : felt*
+    ) -> (
+        current_gen_id : felt,
+        multi_game_state_array_len : felt,
+        multi_game_state_array : felt*,
+    ):
+    # Input: generation_ids
+    # Output: [array of states requested, current_gen_id]
+    alloc_locals
+    let (local multi_state : felt*) = alloc()
+    # Append rows for all the generations requested.
+    append_states(gen_ids_len, gen_ids, multi_state)
+    # Get the id of the latest generation for context.
+    let (current_id) = current_generation.read()
+    # Length of final state array.
+    let multi_state_len = 32 * gen_ids_len
+    return (current_id, multi_state_len, multi_state)
+end
+
 ##### Private functions #####
+# For a list of gen_ids, adds state to a state array (for a frontend).
+func append_states{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        len : felt,
+        gen_id_array : felt*,
+        states : felt*
+    ):
+    # This helper function can be used to grab a large number of specific
+    # states for a frontend to quickly get game data.
+    if len == 0:
+        return ()
+    end
+    # Loop with recursion.
+    append_states(len - 1, gen_id_array, states)
+    let index = len - 1
+    # Get rows for the n-th requested generation.
+    let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
+        r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
+        r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
+        r30, r31) = view_game(gen_id_array[index])
+    # Append 32 new rows to the multi-state for every gen requested.
+    assert states[index * 32 + 0] = r0
+    assert states[index * 32 + 1] = r1
+    assert states[index * 32 + 2] = r2
+    assert states[index * 32 + 3] = r3
+    assert states[index * 32 + 4] = r4
+    assert states[index * 32 + 5] = r5
+    assert states[index * 32 + 6] = r6
+    assert states[index * 32 + 7] = r7
+    assert states[index * 32 + 8] = r8
+    assert states[index * 32 + 9] = r9
+    assert states[index * 32 + 10] = r10
+    assert states[index * 32 + 11] = r11
+    assert states[index * 32 + 12] = r12
+    assert states[index * 32 + 13] = r13
+    assert states[index * 32 + 14] = r14
+    assert states[index * 32 + 15] = r15
+    assert states[index * 32 + 16] = r16
+    assert states[index * 32 + 17] = r17
+    assert states[index * 32 + 18] = r18
+    assert states[index * 32 + 19] = r19
+    assert states[index * 32 + 20] = r20
+    assert states[index * 32 + 21] = r21
+    assert states[index * 32 + 22] = r22
+    assert states[index * 32 + 23] = r23
+    assert states[index * 32 + 24] = r24
+    assert states[index * 32 + 25] = r25
+    assert states[index * 32 + 26] = r26
+    assert states[index * 32 + 27] = r27
+    assert states[index * 32 + 28] = r28
+    assert states[index * 32 + 29] = r29
+    assert states[index * 32 + 30] = r30
+    assert states[index * 32 + 31] = r31
+
+    return ()
+end
+
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
         syscall_ptr : felt*,

@@ -82,7 +82,7 @@ async def test_game_flow(game_factory):
             USER_IDS[turn]).invoke()
 
         response = await game.current_generation_id().call()
-        (id, ) = response.result.id
+        id = response.result.gen_id
         im = await game.view_game(id).call()
         images.append(im)
         assert id == prev_id + gens_per_turn
@@ -98,6 +98,18 @@ async def test_game_flow(game_factory):
     # TODO - add some checks on the two elements below (images, info)
     #print('images', images)
     #print('info', info)
+
+    # Get arbitrary number of states
+    ids = [0, 1, 2, 3, 4]
+    response = await game.get_arbiratry_state_arrays(ids)
+    current_gen_id = response.result.current_gen_id
+    # The games are returned in one continuous array.
+    requested_states = response.result.multi_game_state_array
+    states = []
+    for i in range(0, len(ids), 32):
+        game = requested_states[i:i + 32]
+        states.append(game)
+    await display(states)
 
 
 @pytest.mark.asyncio
