@@ -74,15 +74,15 @@ async def test_game_flow(game_factory):
     response = await game.view_game(first_id).call()
     (image_0) = response.result
     images = []
-    images.append(image_0.result)
+    images.append(image_0)
     # Run some turns and save the output after each turn.
     prev_id = first_id
     for turn in range(turns):
         await game.evolve_and_claim_next_generation(
             USER_IDS[turn]).invoke()
 
-        (id, ) = await game.current_generation_id().call()
-
+        response = await game.current_generation_id().call()
+        (id, ) = response.result.id
         im = await game.view_game(id).call()
         images.append(im)
         assert id == prev_id + gens_per_turn
@@ -108,8 +108,8 @@ async def test_give_life(game_factory):
     alter_col = 5
     invalid_token_id = 1
 
-    response = await game.current_generation_id().call()
-    (id_pre, ) = response.result
+    game_pre = await game.current_generation_id().call()
+    (id_pre, ) = game_pre.result
     response = await game.view_game(id_pre).call()
     (image_pre) = response.result
     await display(image_pre)

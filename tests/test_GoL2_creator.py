@@ -91,7 +91,7 @@ async def test_create(game_factory):
         account=accounts[0],
         to=game.contract_address,
         selector_name='create',
-        calldata=[row_states])
+        calldata=row_states)
 
 
     # Check that the user has a game.
@@ -104,13 +104,15 @@ async def test_create(game_factory):
     index = response.result.game_index
     assert index == first_index + 1
 
-    im = await game.view_game(index, 0).call()
+    response = await game.view_game(index, 0).call()
+    (im) = response.result
     view([im])
     print('Above is the newly created game')
 
     response = await game.generation_of_game(first_index).call()
     gen = response.result.generation
-    im = await game.view_game(first_index, gen).call()
+    response = await game.view_game(first_index, gen).call()
+    (im) = response.result
     view([im])
     print('Above is the first game after being progressed 10 times.')
 
