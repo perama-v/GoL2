@@ -5,8 +5,9 @@ import asyncio
 from starkware.starknet.testing.starknet import Starknet
 from utils.Signer import Signer
 
-signer = Signer(5858585858585858585)
-L1_ADDRESS = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+NUM_SIGNING_ACCOUNTS = 2
+DUMMY_PRIVATE = 12345678987654321
+signers = []
 
 # Game constants
 DIM = 32
@@ -17,54 +18,85 @@ def event_loop():
 
 
 @pytest.fixture(scope='module')
-async def game_factory():
+async def account_factory():
+    # Initialize network
     starknet = await Starknet.empty()
+    accounts = []
+    print(f'Deploying {NUM_SIGNING_ACCOUNTS} accounts...')
+    for i in range(NUM_SIGNING_ACCOUNTS):
+        signer = Signer(DUMMY_PRIVATE + i)
+        signers.append(signer)
+        account = await starknet.deploy(
+            "contracts/Account.cairo",
+            constructor_calldata=[signer.public_key]
+        )
+        await account.initialize(account.contract_address).invoke()
+        accounts.append(account)
+
+        print(f'Account {i} is: {hex(account.contract_address)}')
+
+    # Admin is usually accounts[0], user_1 = accounts[1].
+    # To build a transaction to call func_xyz(arg_1, arg_2)
+    # on a TargetContract:
+
+    # await Signer.send_transaction(
+    #   account=accounts[1],
+    #   to=TargetContract,
+    #   selector_name='func_xyz',
+    #   calldata=[arg_1, arg_2],
+    #   nonce=current_nonce)
+
+    # Note that nonce is an optional argument.
+    return starknet, accounts
+
+@pytest.fixture(scope='module')
+async def game_factory(account_factory):
+    starknet, accounts = account_factory
     # Deploy
     game = await starknet.deploy("contracts/GoL2_creator.cairo")
-    account = await starknet.deploy("contracts/Account.cairo")
 
-    # Set up account
-    await account.initialize(signer.public_key, L1_ADDRESS).invoke()
-    # Initialize game (and token secondarily)
-    spawn_game = signer.build_transaction(
-        account, game.contract_address, 'spawn', [], 0)
-    print('done')
-    await spawn_game.invoke()
-    return starknet, game, account
+    return starknet, game, accounts
 
 
 @pytest.mark.asyncio
 async def test_create(game_factory):
     # Start with freshly spawned game
-    _, game, account = game_factory
+    _, game, accounts = game_factory
 
     # First generate 10 credits by progressing another game.
-    (first_index, first_game_id, newest_gen) = await game.newest_game().call()
+    response = await game.newest_game().call()
+    (first_index, first_game_id, newest_gen) = response.result
+
     nonce = 1
     for i in range(10):
         print(f'Done with {i}')
 
-        contribute = signer.build_transaction(account,
-            game.contract_address, 'contribute', [first_game_id],
-            nonce)
-        await contribute.invoke()
-        nonce = nonce + 1
+        await signers[0].send_transaction(
+            account=accounts[0],
+            to=game.contract_address,
+            selector_name='contribute',
+            calldata=[first_game_id])
 
     # Make sure credits were given.
     (game_count, credit_count) = await game.user_counts(
-            account.contract_address).call()
+            accounts[0].contract_address).call().result
+
     assert game_count == 0
     assert credit_count == 10
 
     # Redeem credits
     row_states = [ 2**(i) for i in range(32) ]
-    create_game = signer.build_transaction(
-        account, game.contract_address, 'create', row_states, nonce)
-    await create_game.invoke()
+
+    await signers[0].send_transaction(
+        account=accounts[0],
+        to=game.contract_address,
+        selector_name='create',
+        calldata=[row_states])
+
 
     # Check that the user has a game.
     (game_index, ) = await game.specific_game_of_user(
-        account.contract_address, 0).call()
+        accounts[0].contract_address, 0).call()
     assert game_index == first_index + 1
 
     # Check that the game was recorded as the latest game.
@@ -83,7 +115,7 @@ async def test_create(game_factory):
     # Test harvesting functions
     (recent_games) = await game.get_recently_created(0).call()
     (recent_generations) = await game.get_recent_generations_of_game(0).call()
-    (user_data) = await game.get_user_data(account.contract_address, 0).call()
+    (user_data) = await game.get_user_data(accounts[0].contract_address, 0).call()
 
     print(recent_games)
     print(recent_generations)

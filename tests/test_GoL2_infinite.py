@@ -5,8 +5,9 @@ import asyncio
 from starkware.starknet.testing.starknet import Starknet
 from utils.Signer import Signer
 
-signer = Signer(5858585858585858585)
-L1_ADDRESS = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+NUM_SIGNING_ACCOUNTS = 2
+DUMMY_PRIVATE = 12345678987654321
+signers = []
 
 # Temporary user_ids to bypass account verification
 USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576]
@@ -18,24 +19,45 @@ DIM = 32
 def event_loop():
     return asyncio.new_event_loop()
 
+@pytest.fixture(scope='module')
+async def account_factory():
+    # Initialize network
+    starknet = await Starknet.empty()
+    accounts = []
+    print(f'Deploying {NUM_SIGNING_ACCOUNTS} accounts...')
+    for i in range(NUM_SIGNING_ACCOUNTS):
+        signer = Signer(DUMMY_PRIVATE + i)
+        signers.append(signer)
+        account = await starknet.deploy(
+            "contracts/Account.cairo",
+            constructor_calldata=[signer.public_key]
+        )
+        await account.initialize(account.contract_address).invoke()
+        accounts.append(account)
+
+        print(f'Account {i} is: {hex(account.contract_address)}')
+
+    # Admin is usually accounts[0], user_1 = accounts[1].
+    # To build a transaction to call func_xyz(arg_1, arg_2)
+    # on a TargetContract:
+
+    # await Signer.send_transaction(
+    #   account=accounts[1],
+    #   to=TargetContract,
+    #   selector_name='func_xyz',
+    #   calldata=[arg_1, arg_2],
+    #   nonce=current_nonce)
+
+    # Note that nonce is an optional argument.
+    return starknet, accounts
+
 
 @pytest.fixture(scope='module')
-async def game_factory():
-    starknet = await Starknet.empty()
+async def game_factory(account_factory):
+    starknet, accounts = account_factory = await Starknet.empty()
     # Deploy
     game = await starknet.deploy("contracts/GoL2_infinite.cairo")
-    account = await starknet.deploy("contracts/Account.cairo")
-
-    # Set up account
-    await account.initialize(signer.public_key, L1_ADDRESS).invoke()
-    # Initialize game (and token secondarily)
-    spawn_game = signer.build_transaction(
-        account, game.contract_address, 'spawn', [], 0)
-    print('done')
-    await spawn_game.invoke()
-    return starknet, game, account
-
-
+    return starknet, game, accounts
 
 @pytest.mark.asyncio
 async def test_game_flow(game_factory):

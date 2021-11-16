@@ -23,10 +23,6 @@ from contracts.utils.life_rules import (evaluate_rounds,
 const DIM = 32
 
 ##### Storage #####
-# Returns whether the game has started (bool=1) or not (bool=0).
-@storage_var
-func spawned() -> (bool : felt):
-end
 
 # Returns the gen_id of the current alive generation.
 @storage_var
@@ -102,16 +98,12 @@ end
 
 ##################
 
-##### Public functions #####
-# Sets the initial state.
-@external
-func spawn{
+@constructor
+func constructor{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }():
-    let (has_spawned) = spawned.read()
-    assert has_spawned = 0
 
     # Start with an acorn near bottom right in a 32x32 grid.
     # https://www.conwaylife.com/patterns/acorn.cells
@@ -122,10 +114,11 @@ func spawn{
     # Set the current generation as '1'.
     current_generation.write(1)
     # Prevent entry to this function again.
-    spawned.write(1)
     return ()
 end
 
+##### Public functions #####
+# Sets the initial state.
 # Progresses the game by a chosen number of generations
 @external
 func evolve_and_claim_next_generation{

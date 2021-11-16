@@ -120,10 +120,8 @@ end
 
 
 ##################
-
-##### Public functions #####
-@external
-func spawn{
+@constructor
+func constructor{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -156,6 +154,7 @@ func spawn{
     return ()
 end
 
+##### Public functions #####
 # Sets the initial state of a game.
 @external
 func create{
