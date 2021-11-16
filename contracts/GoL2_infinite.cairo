@@ -8,7 +8,6 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
     assert_not_zero, assert_nn_le, assert_not_equal)
 from starkware.cairo.common.pow import pow
-from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
     get_caller_address)
 
@@ -108,7 +107,6 @@ end
 @external
 func spawn{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }():
@@ -132,7 +130,6 @@ end
 @external
 func evolve_and_claim_next_generation{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -175,7 +172,6 @@ end
 @external
 func give_life_to_cell{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -229,7 +225,7 @@ end
 # The index is based on turns while the id is evolution steps.
 @view
 func current_generation_id{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -243,7 +239,7 @@ end
 # Get the incrementing index of every give life action.
 @view
 func latest_give_life_index{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -259,7 +255,7 @@ end
 # Returns the index of redemption for a given token id.
 @view
 func redemption_index_from_token_id{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -275,7 +271,7 @@ end
 # Returns the token id for a given redemption index.
 @view
 func token_id_from_redemption_index{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -291,7 +287,7 @@ end
 # Returns the highest redemption index at a particular generation.
 @view
 func highest_redemption_index_of_generation{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -308,7 +304,7 @@ end
 # Returns a list of rows for the specified generation.
 @view
 func view_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -370,7 +366,7 @@ end
 # First call this function to see how many tokens a user has.
 @view
 func user_token_count{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -386,7 +382,7 @@ end
 # Call after user_token_count. 0-based index gets token data of a user.
 @view
 func get_user_data{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -431,7 +427,7 @@ end
 # The token_id (equal to gen_id at end of mint/turn) can be used to get data.
 @view
 func get_token_data{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -474,7 +470,7 @@ end
 # Get a collection of useful contemporary information
 @view
 func latest_useful_state{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -596,7 +592,7 @@ end
 ##### Private functions #####
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -623,7 +619,6 @@ end
 # User input may override state to make a cell alive.
 func activate_cell{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -653,7 +648,7 @@ end
 
 # Post-sim. Walk rows then columns to store state.
 func pack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
