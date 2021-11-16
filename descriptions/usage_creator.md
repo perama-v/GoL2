@@ -72,13 +72,8 @@ to retrieve the current generation.
 
 Or:
 ```
-starknet-compile contracts/GoL2_creator.cairo \
-    --output artifacts/GoL2_creator_compiled.json \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json
+nile compile contracts/GoL2_creator.cairo
 
-starknet-compile contracts/account.cairo \
-    --output artifacts/account_compiled.json \
-    --abi artifacts/abis/account_contract_abi.json
 ```
 
 ### Test
@@ -95,41 +90,15 @@ pytest -s test/test_GoL2_creator.py::test_function_name
 ### Deploy
 
 ```
-starknet deploy --contract artifacts/GoL2_creator_compiled.json \
-    --network=alpha
-
-Deploy transaction was sent.
-Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
-Transaction ID: 311866
-
-starknet tx_status --network=alpha --id=311866
-
-starknet deploy --contract artifacts/account_compiled.json \
-    --network=alpha
-
-Contract address: ACCOUNT_ADDRESS
+nile deploy GoL2_creator --alias GoL2_creator
 ```
 
 
 ## Interact (WIP)
 
-Spawn the game (one-off operation).
+View the spawned game (one-off operation).
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function spawn
-
-```
-View the game state (as a list of 32 binary-encoded values).
-```
-starknet call \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function view_game \
-    --inputs 0 0
+nile call GoL2_creator view_game 0 0
 
 Returns the spawned Acorn, situated mid-right):
 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -178,16 +147,7 @@ This can be rendered in different styles, for example:
 ```
 Make the zero-address (testing pre-accounts) evolve one generation:
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function contribute \
-    --inputs 0
-
-Invoke transaction was sent.
-Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
-Transaction ID: 295433
+nile invoke GoL2_creator contribute 0
 ```
 Calling `view_game` again yields the correct next generation:
 ```
@@ -202,12 +162,7 @@ Or:
 See how many credits the zero-address has now. This
 will return `game_count` (will be zero) and `credit_count`.
 ```
-starknet call \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function user_counts \
-    --inputs 0
+nile call GoL2_creator user_counts 0
 
 0 1
 ```
@@ -216,31 +171,26 @@ is the address that is attributed when an account is not used). The
 result should be zero.
 
 ```
-starknet call \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function specific_game_of_user \
-    --inputs 0 0
+nile call GoL2_creator specific_game_of_user 0 0
 
 0
 ```
 After collecting ten tokens, a user can create as follows. This is
 a sparsely populated canvas.
 
+The below call will fail until the user has enough credit.
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db \
-    --abi artifacts/abis/GoL2_creator_contract_abi.json \
-    --function create \
-    --inputs 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-
-Invoke transaction was sent.
-Contract address: 0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db
-Transaction ID: 311874
+nile call GoL2_creator create 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```
 
+# Testnet deployment
+```
+nile deploy GoL2_creator --alias GoL2_creator --network mainnet
+
+🚀 Deploying GoL2_creator
+🌕 artifacts/GoL2_creator.json successfully deployed to 0x02534460770d257dc4ecaa03ef374eb739fbf3695f3ef17c585dd8225de110f0
+📦 Registering deployment as GoL2_creator in mainnet.deployments.txt
+```
 
 ## Voyager
 

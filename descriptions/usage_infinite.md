@@ -101,46 +101,20 @@ pytest -s test/test_GoL2_infinite.py::test_game_flow
 ### Deploy
 
 ```
-starknet deploy --contract artifacts/GoL2_infinite_compiled.json \
-    --network=alpha
+nile deploy GoL2_infinite --alias GoL2_infinite
 
-Deploy transaction was sent.
-Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
-Transaction ID: 305293
-
-starknet tx_status --network=alpha --id=305293
-
-starknet deploy --contract artifacts/account_compiled.json \
-    --network=alpha
-
-TODO - Integrate account
 ```
-
+TODO - Integrate account
 
 ## Interact
 
-Spawn the game (one-off operation).
+View the spawned game.
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function spawn
-
-Invoke transaction was sent.
-Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
-Transaction ID: 305310
+nile call GoL2_infinite view_game 1
 ```
-View the game state (as a list of 32 binary-encoded values).
-```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function view_game \
-    --inputs 1
 
 Returns the spawned Acorn, situated mid-right):
+```
 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Which decoded as bin(32), bin(8) and bin(103) take the acorn form:
@@ -187,19 +161,12 @@ This can be rendered in different styles, for example:
 ```
 Make user 1 (testing pre-accounts) evolve one generation:
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function evolve_and_claim_next_generation \
-    --inputs 1
-
-Invoke transaction was sent.
-Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
-Transaction ID: 305314
+nile invoke GoL2_infinite evolve_and_claim_next_generation 1
 ```
 Calling `view_game` again yields the correct next generation:
 ```
+nile call GoL2_infinite view_game 2
+
 0 0 0 0 0 0 0 0 0 0 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 Or:
@@ -210,25 +177,13 @@ Or:
 
 See how many tokens user 1 has now:
 ```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function user_token_count \
-    --inputs 1
-
-1
+nile call GoL2_infinite user_token_count 1
 ```
 Pull data about their token(s) using the index of each token. E.g., index 0 will access
 the first token for this user. The data returned is: `(token_id, has_used_give_life, generation_during_give_life, alive_cell_row, alive_cell_col)`.
 
 ```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function get_user_data \
-    --inputs 1 0
+nile call GoL2_infinite get_user_data 1 0
 
 2 0 0 0 0
 ```
@@ -240,36 +195,19 @@ Make, for user 1, a particular cell (row index `9` and column index `9`) become 
 specifying that token id 2 is being redeemed.
 
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function give_life_to_cell \
-    --inputs 1 9 9 2
+nile invoke GoL2_infinite give_life_to_cell 1 9 9 2
 
-Invoke transaction was sent.
-Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
-Transaction ID: 305316
 ```
-
 We can check the current game generation:
 ```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function current_generation_id
+nile call GoL2_infinite current_generation_id
+
 2
 ```
 Thus, there has been one turn and the current generation is 2, as expected.
 The generation can be used to view the game:
 ```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function view_game \
-    --inputs 2
+nile call GoL2_infinite view_game 2
 
 Returns the addion of a single cell at the tenth row/col:
 0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -281,36 +219,42 @@ wise placement, unless other cells are placed in adjacent locations.
 
 Confirm this by having user 23 have a turn, evolving 1 generation:
 ```
-starknet invoke \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function evolve_and_claim_next_generation \
-    --inputs 23
+nile invoke GoL2_infinite evolve_and_claim_next_generation 23
 
-Invoke transaction was sent.
-Contract address: 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9
-Transaction ID: 305318
 ```
 Then check that the isolated cell has died, first we can check that
 the game is correctly at generation 3. Expected: generation 3
 (spawn=1, then +1 got to 2, then +1 makes 3).
 ```
-starknet call \
-    --network=alpha \
-    --address 0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9 \
-    --abi artifacts/abis/GoL2_infinite_contract_abi.json \
-    --function latest_useful_state \
-    --inputs 0
+nile call GoL2_infinite latest_useful_state 0
 
 2 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```
 The above result includes the game generation, ten most recent claimed
 tokens, and the three most recent game states.
 
+Fetch the image of multiple generations
+```
+nile call GoL2_infinite get_arbitrary_state_arrays 3 1 2 3
+
+3 96 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 46 41 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+```
+TODO add user data to the multi-generation getter above if needed.
+
+# Testnet deployment
+```
+nile deploy GoL2_infinite --alias GoL2_infinite --network mainnet
+
+🚀 Deploying GoL2_infinite
+🌕 artifacts/GoL2_infinite.json successfully deployed to 0x027e8c3bf00b3f3ed7665308fb20e46d13610d29add807600e8cb702bc77cd1f
+📦 Registering deployment as GoL2_infinite in mainnet.deployments.txt
+```
+
+
+
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x03071c4338ad7ea397aabb22741914edca4b58acce076efd8d4e03c6567904e9).
+Interact using the Voyager browser https://voyager.online).
 
 
 

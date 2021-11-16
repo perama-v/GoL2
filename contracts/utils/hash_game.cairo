@@ -2,7 +2,6 @@ from starkware.cairo.common.hash_state import (hash_init,
     hash_update, HashState)
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
-from starkware.starknet.common.storage import Storage
 
 
 # Computes the unique hash of a list of felts.

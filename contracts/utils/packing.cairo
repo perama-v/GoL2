@@ -1,13 +1,12 @@
 from starkware.cairo.common.pow import pow
 from starkware.cairo.common.bitwise import bitwise_or, bitwise_and
-from starkware.starknet.common.storage import Storage
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 
 const DIM = 32
 # Post-sim. Walk rows then columns to store state.
 func pack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -37,7 +36,7 @@ end
 
 # Post-sim. Walk columns for a given row and saves array to state.
 func pack_cols{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -59,7 +58,6 @@ func pack_cols{
     # (Note, on first entry, col=1 so col-1 gets the index)
 
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
 
@@ -91,7 +89,7 @@ end
 
 # Pre-sim. Walk columns for a given row and saves state to an array.
 func unpack_cols{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -110,7 +108,6 @@ func unpack_cols{
         row=row, col=col-1, stored_row=stored_row)
     # (Note, on first entry, col=1 so col-1 gets the index)
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local storage_ptr : Storage* = storage_ptr
     local cell_states : felt* = cell_states
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     # state = 2**column_index AND row_binary

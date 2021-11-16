@@ -10,7 +10,6 @@ from starkware.cairo.common.hash_state import (hash_init,
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
     assert_not_zero, assert_nn_le, assert_le, assert_not_equal)
 from starkware.cairo.common.pow import pow
-from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
     get_caller_address)
 
@@ -121,12 +120,9 @@ end
 
 
 ##################
-
-##### Public functions #####
-@external
-func spawn{
+@constructor
+func constructor{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }():
@@ -158,11 +154,11 @@ func spawn{
     return ()
 end
 
+##### Public functions #####
 # Sets the initial state of a game.
 @external
 func create{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -225,7 +221,6 @@ func create{
     assert_le(CREDIT_REQUIREMENT, credits)
     has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
-    local storage_ptr : Storage* = storage_ptr
     # No two games are the same. Game_id == genesis hash.
     let (local game_id) = hash_game(genesis_state, 32)
     let (existing_index) = game_index_from_game_id.read(game_id)
@@ -292,7 +287,6 @@ end
 @external
 func contribute{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -332,7 +326,7 @@ end
 # Gets the index and id of the latest game that was created.
 @view
 func newest_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }() -> (
@@ -349,7 +343,7 @@ end
 # Returns user data (credits, games owned).
 @view
 func user_counts{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -367,7 +361,7 @@ end
 # Returns game index from the index of a users inventory.
 @view
 func specific_game_of_user{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -386,7 +380,7 @@ end
 # Returns the latest generation of a given game.
 @view
 func generation_of_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -403,7 +397,7 @@ end
 # Returns a list of rows for the specified generation.
 @view
 func view_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -464,7 +458,7 @@ end
 # Get a collection of recently created (or specified) games.
 @view
 func get_recently_created{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -572,7 +566,7 @@ end
 # Get a collection of recently created (or specified) games.
 @view
 func get_recent_generations_of_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -684,7 +678,7 @@ end
 # View games and tokens of a particular user.
 @view
 func get_user_data{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -798,7 +792,7 @@ end
 ##### Private functions #####
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -827,7 +821,7 @@ end
 
 # Saves inidividual rows in the given array. (pack rows and save)
 func save_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr

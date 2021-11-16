@@ -5,8 +5,9 @@ import asyncio
 from starkware.starknet.testing.starknet import Starknet
 from utils.Signer import Signer
 
-signer = Signer(5858585858585858585)
-L1_ADDRESS = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+NUM_SIGNING_ACCOUNTS = 2
+DUMMY_PRIVATE = 12345678987654321
+signers = []
 
 # Temporary user_ids to bypass account verification
 USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576]
@@ -18,37 +19,60 @@ DIM = 32
 def event_loop():
     return asyncio.new_event_loop()
 
+@pytest.fixture(scope='module')
+async def account_factory():
+    # Initialize network
+    starknet = await Starknet.empty()
+    accounts = []
+    print(f'Deploying {NUM_SIGNING_ACCOUNTS} accounts...')
+    for i in range(NUM_SIGNING_ACCOUNTS):
+        signer = Signer(DUMMY_PRIVATE + i)
+        signers.append(signer)
+        account = await starknet.deploy(
+            "contracts/Account.cairo",
+            constructor_calldata=[signer.public_key]
+        )
+        await account.initialize(account.contract_address).invoke()
+        accounts.append(account)
+
+        print(f'Account {i} is: {hex(account.contract_address)}')
+
+    # Admin is usually accounts[0], user_1 = accounts[1].
+    # To build a transaction to call func_xyz(arg_1, arg_2)
+    # on a TargetContract:
+
+    # await Signer.send_transaction(
+    #   account=accounts[1],
+    #   to=TargetContract,
+    #   selector_name='func_xyz',
+    #   calldata=[arg_1, arg_2],
+    #   nonce=current_nonce)
+
+    # Note that nonce is an optional argument.
+    return starknet, accounts
+
 
 @pytest.fixture(scope='module')
-async def game_factory():
-    starknet = await Starknet.empty()
+async def game_factory(account_factory):
+    starknet, accounts = account_factory
     # Deploy
     game = await starknet.deploy("contracts/GoL2_infinite.cairo")
-    account = await starknet.deploy("contracts/Account.cairo")
-
-    # Set up account
-    await account.initialize(signer.public_key, L1_ADDRESS).invoke()
-    # Initialize game (and token secondarily)
-    spawn_game = signer.build_transaction(
-        account, game.contract_address, 'spawn', [], 0)
-    print('done')
-    await spawn_game.invoke()
-    return starknet, game, account
-
-
+    return starknet, game, accounts
 
 @pytest.mark.asyncio
 async def test_game_flow(game_factory):
     # Start with freshly spawned game
     _, game, _ = game_factory
-    (first_id, ) = await game.current_generation_id().call()
+    response = await game.current_generation_id().call()
+    (first_id, ) = response.result
     assert first_id == 1
     ##### Game progression tests #####
     gens_per_turn = 1
     turns = 4
     # How many generations pass per turn (capped using modulo).
 
-    image_0 = await game.view_game(first_id).invoke()
+    response = await game.view_game(first_id).call()
+    (image_0) = response.result
     images = []
     images.append(image_0)
     # Run some turns and save the output after each turn.
@@ -57,8 +81,8 @@ async def test_game_flow(game_factory):
         await game.evolve_and_claim_next_generation(
             USER_IDS[turn]).invoke()
 
-        (id, ) = await game.current_generation_id().call()
-
+        response = await game.current_generation_id().call()
+        id = response.result.gen_id
         im = await game.view_game(id).call()
         images.append(im)
         assert id == prev_id + gens_per_turn
@@ -75,6 +99,18 @@ async def test_game_flow(game_factory):
     #print('images', images)
     #print('info', info)
 
+    # Get arbitrary number of states
+    ids = [0, 1, 2, 3, 4]
+    response = await game.get_arbiratry_state_arrays(ids)
+    current_gen_id = response.result.current_gen_id
+    # The games are returned in one continuous array.
+    requested_states = response.result.multi_game_state_array
+    states = []
+    for i in range(0, len(ids), 32):
+        game = requested_states[i:i + 32]
+        states.append(game)
+    await display(states)
+
 
 @pytest.mark.asyncio
 async def test_give_life(game_factory):
@@ -84,8 +120,10 @@ async def test_give_life(game_factory):
     alter_col = 5
     invalid_token_id = 1
 
-    (id_pre, ) = await game.current_generation_id().call()
-    (image_pre) = await game.view_game(id_pre).invoke()
+    game_pre = await game.current_generation_id().call()
+    (id_pre, ) = game_pre.result
+    response = await game.view_game(id_pre).call()
+    (image_pre) = response.result
     await display(image_pre)
 
     with pytest.raises(Exception) as e_info:
@@ -100,8 +138,9 @@ async def test_give_life(game_factory):
     already_alive_row=13
     already_alive_col=30
     # Get the details of their new token.
-    (user_token_id, _, _, _, _) = await game.get_user_data(
+    response = await game.get_user_data(
         USER_IDS[0], 0).invoke()
+    (user_token_id, _, _, _, _) = response.result
     # Then redeem token.
     assert user_token_id == 2
 
@@ -116,8 +155,10 @@ async def test_give_life(game_factory):
         alter_col, user_token_id).invoke()
 
 
-    (id_post, ) = await game.current_generation_id().call()
-    (image_post) = await game.view_game(id_post).invoke()
+    response = await game.current_generation_id().call()
+    (id_post, ) = response.result
+    response = await game.view_game(id_post).call()
+    (image_post) = response.result
     await display(image_post)
 
     assert id_pre == id_post - 1 == 1

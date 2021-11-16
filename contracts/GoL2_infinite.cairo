@@ -8,7 +8,6 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
     assert_not_zero, assert_nn_le, assert_not_equal)
 from starkware.cairo.common.pow import pow
-from starkware.starknet.common.storage import Storage
 from starkware.starknet.common.syscalls import (call_contract,
     get_caller_address)
 
@@ -24,10 +23,6 @@ from contracts.utils.life_rules import (evaluate_rounds,
 const DIM = 32
 
 ##### Storage #####
-# Returns whether the game has started (bool=1) or not (bool=0).
-@storage_var
-func spawned() -> (bool : felt):
-end
 
 # Returns the gen_id of the current alive generation.
 @storage_var
@@ -103,17 +98,12 @@ end
 
 ##################
 
-##### Public functions #####
-# Sets the initial state.
-@external
-func spawn{
+@constructor
+func constructor{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }():
-    let (has_spawned) = spawned.read()
-    assert has_spawned = 0
 
     # Start with an acorn near bottom right in a 32x32 grid.
     # https://www.conwaylife.com/patterns/acorn.cells
@@ -124,15 +114,15 @@ func spawn{
     # Set the current generation as '1'.
     current_generation.write(1)
     # Prevent entry to this function again.
-    spawned.write(1)
     return ()
 end
 
+##### Public functions #####
+# Sets the initial state.
 # Progresses the game by a chosen number of generations
 @external
 func evolve_and_claim_next_generation{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -175,7 +165,6 @@ end
 @external
 func give_life_to_cell{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -229,7 +218,7 @@ end
 # The index is based on turns while the id is evolution steps.
 @view
 func current_generation_id{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -243,7 +232,7 @@ end
 # Get the incrementing index of every give life action.
 @view
 func latest_give_life_index{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -259,7 +248,7 @@ end
 # Returns the index of redemption for a given token id.
 @view
 func redemption_index_from_token_id{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -275,7 +264,7 @@ end
 # Returns the token id for a given redemption index.
 @view
 func token_id_from_redemption_index{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -291,7 +280,7 @@ end
 # Returns the highest redemption index at a particular generation.
 @view
 func highest_redemption_index_of_generation{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -308,7 +297,7 @@ end
 # Returns a list of rows for the specified generation.
 @view
 func view_game{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -370,7 +359,7 @@ end
 # First call this function to see how many tokens a user has.
 @view
 func user_token_count{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -386,7 +375,7 @@ end
 # Call after user_token_count. 0-based index gets token data of a user.
 @view
 func get_user_data{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -431,7 +420,7 @@ end
 # The token_id (equal to gen_id at end of mint/turn) can be used to get data.
 @view
 func get_token_data{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -474,7 +463,7 @@ end
 # Get a collection of useful contemporary information
 @view
 func latest_useful_state{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
@@ -593,10 +582,99 @@ func latest_useful_state{
         c30, c31)
 end
 
+# Pass a list of generation ids to fetch multiple states.
+@view
+func get_arbitrary_state_arrays{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        gen_ids_len : felt,
+        gen_ids : felt*
+    ) -> (
+        current_gen_id : felt,
+        multi_game_state_array_len : felt,
+        multi_game_state_array : felt*,
+    ):
+    # Input: generation_ids
+    # Output: [array of states requested, current_gen_id]
+    alloc_locals
+    let (local multi_state : felt*) = alloc()
+    # Append rows for all the generations requested.
+    append_states(gen_ids_len, gen_ids, multi_state)
+    # Get the id of the latest generation for context.
+    let (current_id) = current_generation.read()
+    # Length of final state array.
+    let multi_state_len = 32 * gen_ids_len
+    return (current_id, multi_state_len, multi_state)
+end
+
 ##### Private functions #####
+# For a list of gen_ids, adds state to a state array (for a frontend).
+func append_states{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        len : felt,
+        gen_id_array : felt*,
+        states : felt*
+    ):
+    # This helper function can be used to grab a large number of specific
+    # states for a frontend to quickly get game data.
+    if len == 0:
+        return ()
+    end
+    # Loop with recursion.
+    append_states(len - 1, gen_id_array, states)
+    let index = len - 1
+    # Get rows for the n-th requested generation.
+    let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
+        r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
+        r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
+        r30, r31) = view_game(gen_id_array[index])
+    # Append 32 new rows to the multi-state for every gen requested.
+    assert states[index * 32 + 0] = r0
+    assert states[index * 32 + 1] = r1
+    assert states[index * 32 + 2] = r2
+    assert states[index * 32 + 3] = r3
+    assert states[index * 32 + 4] = r4
+    assert states[index * 32 + 5] = r5
+    assert states[index * 32 + 6] = r6
+    assert states[index * 32 + 7] = r7
+    assert states[index * 32 + 8] = r8
+    assert states[index * 32 + 9] = r9
+    assert states[index * 32 + 10] = r10
+    assert states[index * 32 + 11] = r11
+    assert states[index * 32 + 12] = r12
+    assert states[index * 32 + 13] = r13
+    assert states[index * 32 + 14] = r14
+    assert states[index * 32 + 15] = r15
+    assert states[index * 32 + 16] = r16
+    assert states[index * 32 + 17] = r17
+    assert states[index * 32 + 18] = r18
+    assert states[index * 32 + 19] = r19
+    assert states[index * 32 + 20] = r20
+    assert states[index * 32 + 21] = r21
+    assert states[index * 32 + 22] = r22
+    assert states[index * 32 + 23] = r23
+    assert states[index * 32 + 24] = r24
+    assert states[index * 32 + 25] = r25
+    assert states[index * 32 + 26] = r26
+    assert states[index * 32 + 27] = r27
+    assert states[index * 32 + 28] = r28
+    assert states[index * 32 + 29] = r29
+    assert states[index * 32 + 30] = r30
+    assert states[index * 32 + 31] = r31
+
+    return ()
+end
+
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -623,7 +701,6 @@ end
 # User input may override state to make a cell alive.
 func activate_cell{
         syscall_ptr : felt*,
-        storage_ptr : Storage*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
@@ -653,7 +730,7 @@ end
 
 # Post-sim. Walk rows then columns to store state.
 func pack_rows{
-        storage_ptr : Storage*,
+        syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
