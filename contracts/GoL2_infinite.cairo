@@ -584,7 +584,7 @@ end
 
 # Pass a list of generation ids to fetch multiple states.
 @view
-func get_arbiratry_state_arrays{
+func get_arbitrary_state_arrays{
         syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
