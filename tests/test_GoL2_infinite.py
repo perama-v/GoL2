@@ -54,7 +54,7 @@ async def account_factory():
 
 @pytest.fixture(scope='module')
 async def game_factory(account_factory):
-    starknet, accounts = account_factory = await Starknet.empty()
+    starknet, accounts = account_factory
     # Deploy
     game = await starknet.deploy("contracts/GoL2_infinite.cairo")
     return starknet, game, accounts
@@ -63,16 +63,18 @@ async def game_factory(account_factory):
 async def test_game_flow(game_factory):
     # Start with freshly spawned game
     _, game, _ = game_factory
-    (first_id, ) = await game.current_generation_id().call()
+    response = await game.current_generation_id().call()
+    (first_id, ) = response.result
     assert first_id == 1
     ##### Game progression tests #####
     gens_per_turn = 1
     turns = 4
     # How many generations pass per turn (capped using modulo).
 
-    image_0 = await game.view_game(first_id).invoke()
+    response = await game.view_game(first_id).call()
+    (image_0) = response.result
     images = []
-    images.append(image_0)
+    images.append(image_0.result)
     # Run some turns and save the output after each turn.
     prev_id = first_id
     for turn in range(turns):
@@ -106,8 +108,10 @@ async def test_give_life(game_factory):
     alter_col = 5
     invalid_token_id = 1
 
-    (id_pre, ) = await game.current_generation_id().call()
-    (image_pre) = await game.view_game(id_pre).invoke()
+    response = await game.current_generation_id().call()
+    (id_pre, ) = response.result
+    response = await game.view_game(id_pre).call()
+    (image_pre) = response.result
     await display(image_pre)
 
     with pytest.raises(Exception) as e_info:
@@ -122,8 +126,9 @@ async def test_give_life(game_factory):
     already_alive_row=13
     already_alive_col=30
     # Get the details of their new token.
-    (user_token_id, _, _, _, _) = await game.get_user_data(
+    response = await game.get_user_data(
         USER_IDS[0], 0).invoke()
+    (user_token_id, _, _, _, _) = response.result
     # Then redeem token.
     assert user_token_id == 2
 
@@ -138,8 +143,10 @@ async def test_give_life(game_factory):
         alter_col, user_token_id).invoke()
 
 
-    (id_post, ) = await game.current_generation_id().call()
-    (image_post) = await game.view_game(id_post).invoke()
+    response = await game.current_generation_id().call()
+    (id_post, ) = response.result
+    response = await game.view_game(id_post).call()
+    (image_post) = response.result
     await display(image_post)
 
     assert id_pre == id_post - 1 == 1
