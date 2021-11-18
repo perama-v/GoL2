@@ -118,7 +118,7 @@ async def test_game_flow(game_factory):
     # The games are returned in one continuous array.
     requested_states = b
     states = []
-    print('a',a)
+    print('a', a)
     print('b', b)
     print('c', c)
     print('d', d)
@@ -126,7 +126,7 @@ async def test_game_flow(game_factory):
     print('f', f)
     print('g', g)
     print('h', h)
-    for i in range(0, len(ids), 32):
+    for i in range(0, len(requested_states), 32):
         game = requested_states[i:i + 32]
         states.append(game)
     await display(states)
