@@ -590,27 +590,134 @@ func get_arbitrary_state_arrays{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        gen_ids_len : felt,
-        gen_ids : felt*
+        gen_ids_array_len : felt,
+        gen_ids_array : felt*,
+        n_latest_states : felt,
+        give_life_array_len : felt,
+        give_life_array : felt*,
+        n_latest_give_life : felt
     ) -> (
-        current_gen_id : felt,
-        multi_game_state_array_len : felt,
-        multi_game_state_array : felt*,
+        current_generation_id : felt,
+        gen_ids_array_result_len : felt,
+        gen_ids_array_result : felt*,
+        specific_state_owners_len : felt,
+        specific_state_owners : felt*,
+        n_latest_states_result_len : felt,
+        n_latest_states_result : felt*,
+        latest_state_owners_len : felt,
+        latest_state_owners : felt*,
+        latest_redemption_index : felt,
+        give_life_array_result_len : felt,
+        give_life_array_result : felt*,
+        n_latest_give_life_result_len : felt,
+        n_latest_give_life_result : felt*
     ):
-    # Input: generation_ids
-    # Output: [array of states requested, current_gen_id]
+    # Input:
+    #   gen_ids_array -> Specific game states requested.
+    #   n_latest_states -> n latest game states requested.
+    #   give_life_array -> Specific give life actions requested.
+    #   n_latest_give_life -> n latest give life actions requested.
+    # Output descriptions:
+    # A  current_generation_id -> ID of the latest state.
+    # B  gen_ids_array_result -> specific game states.
+    # C  specific_state_owners -> owners of specific game states.
+    # D  n_latest_states_result -> latest game states.
+    # E  latest_state_owners -> owners of latest game states.
+    # F  latest_redemption_index -> index of the latest give life redemption.
+    # G  give_life_array_result -> specific give live events.
+    # H  n_latest_give_life_result -> latest give life events.
+
+    # The give life data is: [redemption_index, id_minted, id_used, row, col, owner]
     alloc_locals
-    let (local multi_state : felt*) = alloc()
-    # Append rows for all the generations requested.
-    append_states(gen_ids_len, gen_ids, multi_state)
-    # Get the id of the latest generation for context.
-    let (current_id) = current_generation.read()
-    # Length of final state array.
-    let multi_state_len = 32 * gen_ids_len
-    return (current_id, multi_state_len, multi_state)
+
+    # A Current generation
+    let (local current_generation_id) = current_generation.read()
+
+    # B Append rows for all the generations requested.
+    let (local gen_ids_array_result : felt*) = alloc()
+    append_states(gen_ids_array_len, gen_ids_array, gen_ids_array_result)
+    local gen_ids_array_result_len = 32 * gen_ids_array_len
+
+    # C Add owners for specific.
+    let (local specific_state_owners : felt*) = alloc()
+    local specific_state_owners_len = gen_ids_array_len
+    append_owners(gen_ids_array_len, gen_ids_array, specific_state_owners)
+
+    # D Append rows for the recent generations.
+    let (local recent_gen_ids : felt*) = alloc()
+    # Make a list of descending numbers.
+    build_array(current_generation_id, n_latest_states, recent_gen_ids)
+    let (local n_latest_states_result : felt*) = alloc()
+    local n_latest_states_result_len = 32 * n_latest_states
+    append_states(n_latest_states, recent_gen_ids, n_latest_states_result)
+
+    # E Add owners for latest.
+    local latest_state_owners_len = n_latest_states
+    let (local latest_state_owners : felt*) = alloc()
+    local latest_state_owners_len = n_latest_states
+    append_owners(n_latest_states, recent_gen_ids, latest_state_owners)
+
+    # F ID of the latest give life redemption.
+    let (local latest_redemption_index) = highest_redemption_index_of_gen.read(
+        current_generation_id)
+
+    # G Specific give life events.
+    let (local give_life_array_result : felt*) = alloc()
+    # There are 6 fields per give life event.
+    local give_life_array_result_len = give_life_array_len * 6
+    append_redemptions(give_life_array_len, give_life_array,
+        give_life_array_result)
+
+    # H Latest give life events.
+    let (local recent_red_indices : felt*) = alloc()
+    # Make a list of descending numbers.
+    build_array(latest_redemption_index, n_latest_give_life,
+        recent_red_indices)
+    let (local n_latest_give_life_result : felt*) = alloc()
+    append_redemptions(n_latest_give_life, recent_red_indices,
+        n_latest_give_life_result)
+    # There are 6 fields per give life event.
+    local n_latest_give_life_result_len = n_latest_give_life * 6
+
+    return (
+        current_generation_id,
+        gen_ids_array_result_len,
+        gen_ids_array_result,
+        specific_state_owners_len,
+        specific_state_owners,
+        n_latest_states_result_len,
+        n_latest_states_result,
+        latest_state_owners_len,
+        latest_state_owners,
+        latest_redemption_index,
+        give_life_array_result_len,
+        give_life_array_result,
+        n_latest_give_life_result_len,
+        n_latest_give_life_result)
 end
 
 ##### Private functions #####
+# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n].
+func build_array{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        x : felt,
+        n : felt,
+        array : felt*
+    ):
+    if n == 0:
+        return ()
+    end
+    build_array(x, n-1, array)
+    # n=1 upon first entry here.
+    let index = n - 1
+    assert array[index] = x - index
+    return ()
+end
+
 # For a list of gen_ids, adds state to a state array (for a frontend).
 func append_states{
         syscall_ptr : felt*,
@@ -671,6 +778,69 @@ func append_states{
 
     return ()
 end
+
+# For an array of generation IDs, creates an array of their owners.
+func append_owners{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        len : felt,
+        gen_id_array : felt*,
+        owners : felt*
+    ):
+    if len == 0:
+        return ()
+    end
+    # Loop with recursion.
+    append_owners(len - 1, gen_id_array, owners)
+    # On first entry here, len=1.
+    let index = len - 1
+    let gen_id = gen_id_array[index]
+    let (owner) = owner_of_generation.read(gen_id)
+    assert owners[index] = owner
+    return ()
+end
+
+
+# For an array of redemption indices, creates an array of their data.
+func append_redemptions{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        len : felt,
+        red_index_array : felt*,
+        redemptions : felt*
+    ):
+    if len == 0:
+        return ()
+    end
+    # Loop with recursion.
+    append_redemptions(len - 1, red_index_array, redemptions)
+    # On first entry here, len=1.
+    let index = len - 1
+
+    # Every redemption event has 6 fields
+    let fields = 6  # index, id_minted, id_used, row, col, owner.
+
+
+    let red_index = red_index_array[index]
+    # Get the ID of the five life token (when it was created).
+    let (gen_minted) = token_at_redemption_index.read(red_index)
+    let (_, r_gen_used, r_row, r_col, r_owner) = get_token_data(gen_minted)
+    assert redemptions[index * fields] = red_index
+    assert redemptions[index * fields + 1] = gen_minted
+    assert redemptions[index * fields + 2] = r_gen_used
+    assert redemptions[index * fields + 3] = r_row
+    assert redemptions[index * fields + 4] = r_col
+    assert redemptions[index * fields + 5] = r_owner
+    return ()
+end
+
+
 
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{

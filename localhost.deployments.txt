@@ -1,1 +1,2 @@
 0x0495c90e01f5743235e941904a94fcc60ecdd7f0112bfb356ea4f9cd346209c5:artifacts/abis/GoL2_creator.json:GoL2_creator
+0x07c6db83583bdfcdc2d9e838c2b1ecdb1bfb00831e4725abe7b128fc2f05e108:artifacts/abis/GoL2_infinite.json:GoL2_infinite
