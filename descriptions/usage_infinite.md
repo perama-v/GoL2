@@ -42,6 +42,9 @@ nile call GoL2_infinite get_arbitrary_state_arrays \
     5  \  # Get five specific give_live events.
     31 32 33 34 35  \ # Specify them.
     12 \  # Get the 12 latest give_life events.
+
+Or as one line:
+nile call GoL2_infinite get_arbitrary_state_arrays 10 71 72 73 74 75 76 77 78 79 80 15 5 31 32 33 34 35 12 --network mainnet
 ```
 Keep in mind that the return function also passes the lengths
 of arrays (see the actual function). Game states are returned
