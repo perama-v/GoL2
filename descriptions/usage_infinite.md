@@ -6,7 +6,60 @@ Evolve the game to claim a state and earn a credit to give-life.
 
 Redeem a give-life credit and make a cell become alive.
 
-## Data fetching flow: General Data
+## Data fetching flow: General Data Method 1
+
+This function is the most flexible for collecting data:
+
+```
+get_arbitrary_state_arrays(
+    gen_ids_array_len : felt,
+    gen_ids_array : felt*,
+    n_latest_states : felt,
+    give_life_array_len : felt,
+    give_life_array : felt*,
+    n_latest_give_life : felt
+)
+```
+
+The values returned can be seen, along with descriptions, in the
+function in `/contracts/GoL_infinite.cairo`.
+
+The use case is to be able to specify known gaps in knowledge, as
+well as harvest recent data going back some specified distance from
+the most recent state.
+
+For example, if the front end currently has game states up to
+generation 70 and knows about give life actions up to index 30.
+
+The frontend knows that the game generation should be more than 80,
+but is not sure how much beyond that.
+
+```
+nile call GoL2_infinite get_arbitrary_state_arrays \
+    10 \  # Get ten specific missing gens.
+    71 72 73 74 75 76 77 78 79 80 \  # Specify them.
+    15 \  # Get the fifteen latest generations.
+    5  \  # Get five specific give_live events.
+    31 32 33 34 35  \ # Specify them.
+    12 \  # Get the 12 latest give_life events.
+```
+Keep in mind that the return function also passes the lengths
+of arrays (see the actual function). Game states are returned
+as 32-length arrays. Skipping those details,
+this will return:
+
+- Current generation the game is up to.
+- Array of states specifically requested.
+- Array of their owners.
+- Array of n recent states.
+- Array of their owners.
+- Index of the latest give_life credit redemption event.
+- Array of give life results specifically requested. Includes:
+    - `[redemption_index, id_minted, id_used, row, col, owner]`
+- Array of n recent give life results. (Same format as above)
+
+
+## Data fetching flow: General Data Method 2
 
 This version of game has generation ids that progress continuously.
 A user may play the game which always progresses the generations by
