@@ -102,11 +102,30 @@ async def test_game_flow(game_factory):
 
     # Get arbitrary number of states
     ids = [0, 1, 2, 3, 4]
-    response = await game.get_arbiratry_state_arrays(ids)
-    current_gen_id = response.result.current_gen_id
+    n_most_recent = 3
+    give_life_indices = []
+    n_recent_give_life = 0
+    response = await game.get_arbitrary_state_arrays(
+        ids, n_most_recent, give_life_indices, n_recent_give_life).call()
+    a = response.result.current_generation_id
+    b = response.result.gen_ids_array_result
+    c = response.result.specific_state_owners
+    d = response.result.n_latest_states_result
+    e = response.result.latest_state_owners
+    f = response.result.latest_redemption_index
+    g = response.result.give_life_array_result
+    h = response.result.n_latest_give_life_result
     # The games are returned in one continuous array.
-    requested_states = response.result.multi_game_state_array
+    requested_states = b
     states = []
+    print('a',a)
+    print('b', b)
+    print('c', c)
+    print('d', d)
+    print('e', e)
+    print('f', f)
+    print('g', g)
+    print('h', h)
     for i in range(0, len(ids), 32):
         game = requested_states[i:i + 32]
         states.append(game)

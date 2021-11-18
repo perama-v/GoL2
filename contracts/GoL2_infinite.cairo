@@ -610,7 +610,7 @@ func get_arbitrary_state_arrays{
         give_life_array_result_len : felt,
         give_life_array_result : felt*,
         n_latest_give_life_result_len : felt,
-        n_latest_give_life_result : felt
+        n_latest_give_life_result : felt*
     ):
     # Input:
     #   gen_ids_array -> Specific game states requested.
@@ -646,7 +646,7 @@ func get_arbitrary_state_arrays{
     # D Append rows for the recent generations.
     let (local recent_gen_ids : felt*) = alloc()
     # Make a list of descending numbers.
-    build_array(current_id, n_latest_states, recent_gen_ids)
+    build_array(current_generation_id, n_latest_states, recent_gen_ids)
     let (local n_latest_states_result : felt*) = alloc()
     local n_latest_states_result_len = 32 * n_latest_states
     append_states(n_latest_states, recent_gen_ids, n_latest_states_result)
@@ -665,19 +665,19 @@ func get_arbitrary_state_arrays{
     let (local give_life_array_result : felt*) = alloc()
     # There are 6 fields per give life event.
     local give_life_array_result_len = give_life_array_len * 6
-    append_redemptions(give_life_array_len, give_life_array_len,
+    append_redemptions(give_life_array_len, give_life_array,
         give_life_array_result)
 
     # H Latest give life events.
     let (local recent_red_indices : felt*) = alloc()
     # Make a list of descending numbers.
-    build_array(latest_redemption_index, n_latest_give_life_result,
+    build_array(latest_redemption_index, n_latest_give_life,
         recent_red_indices)
     let (local n_latest_give_life_result : felt*) = alloc()
-    append_redemptions(n_latest_give_life_result, recent_red_indices,
+    append_redemptions(n_latest_give_life, recent_red_indices,
         n_latest_give_life_result)
     # There are 6 fields per give life event.
-    local n_latest_give_life_result_len = n_latest_give_life_result * 6
+    local n_latest_give_life_result_len = n_latest_give_life * 6
 
     return (
         current_generation_id,
@@ -708,13 +708,14 @@ func build_array{
         n : felt,
         array : felt*
     ):
-    if len == 0:
+    if n == 0:
         return ()
     end
     build_array(x, n-1, array)
     # n=1 upon first entry here.
     let index = n - 1
     assert array[index] = x - index
+    return ()
 end
 
 # For a list of gen_ids, adds state to a state array (for a frontend).
@@ -797,7 +798,8 @@ func append_owners{
     # On first entry here, len=1.
     let index = len - 1
     let gen_id = gen_id_array[index]
-    assert owners[index] = owner_of_generation.read(gen_id)
+    let (owner) = owner_of_generation.read(gen_id)
+    assert owners[index] = owner
     return ()
 end
 
@@ -827,7 +829,7 @@ func append_redemptions{
 
     let red_index = red_index_array[index]
     # Get the ID of the five life token (when it was created).
-    let gen_minted = token_id_from_redemption_index(red_index)
+    let (gen_minted) = token_at_redemption_index.read(red_index)
     let (_, r_gen_used, r_row, r_col, r_owner) = get_token_data(gen_minted)
     assert redemptions[index * fields] = red_index
     assert redemptions[index * fields + 1] = gen_minted
