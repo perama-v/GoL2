@@ -244,17 +244,11 @@ TODO add user data to the multi-generation getter above if needed.
 # Testnet deployment
 ```
 nile deploy GoL2_infinite --alias GoL2_infinite --network mainnet
-
-🚀 Deploying GoL2_infinite
-🌕 artifacts/GoL2_infinite.json successfully deployed to 0x027e8c3bf00b3f3ed7665308fb20e46d13610d29add807600e8cb702bc77cd1f
-📦 Registering deployment as GoL2_infinite in mainnet.deployments.txt
 ```
-
-
 
 ## Voyager
 
-Interact using the Voyager browser https://voyager.online).
+Interact using the Voyager browser [here](https://voyager.online/).
 
 
 

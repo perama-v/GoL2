@@ -186,15 +186,11 @@ nile call GoL2_creator create 32 0 0 0 0 0 0 0 4194304 4194304 0 0 0 118 6 2 0 0
 # Testnet deployment
 ```
 nile deploy GoL2_creator --alias GoL2_creator --network mainnet
-
-🚀 Deploying GoL2_creator
-🌕 artifacts/GoL2_creator.json successfully deployed to 0x02534460770d257dc4ecaa03ef374eb739fbf3695f3ef17c585dd8225de110f0
-📦 Registering deployment as GoL2_creator in mainnet.deployments.txt
 ```
 
 ## Voyager
 
-Interact using the Voyager browser [here](https://voyager.online/contract/0x01fff3f1807f873ddeaa61bbea8910bd8d1e04399d9fa5db29b80c25aa1121db).
+Interact using the Voyager browser [here](https://voyager.online/).
 
 
 
