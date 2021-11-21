@@ -697,7 +697,7 @@ func get_arbitrary_state_arrays{
 end
 
 ##### Private functions #####
-# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n].
+# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
 func build_array{
         syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
