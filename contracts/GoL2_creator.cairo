@@ -805,12 +805,35 @@ func get_recent_user_data{
         games_owned_len : felt,
         games_owned : felt*,
         states_len : felt,
-        states : felt*,
-
+        states : felt*
     ):
+    alloc_locals
     # Returns:
-    # gen_ids_owned -> list of all the games a player created.
+    # An array of m games with n states per game:
+        # game_b: sa sb sc sd
+        # game_b: sa sb sc sd
+        #. etc.
+        # Length = m * n * 32
+    let (count) = user_game_count.read(user_address)
+    let (local inventory_indices : felt*) = alloc()
+    # Build a list of games of interest that the player owns.
+    # E.g., get 5 of the users games with indices: 9, 8, 7, 6 & 5.
+    build_array(count - 1, n_games_to_fetch, inventory_indices)
+    # Length of the state array:
+    let states_len = n_games_to_fetch * n_gens_to_fetch_per_game * 32
+    let (local states : felt*) = alloc()
+    append_recent_user_games(user, inventory_indices,
+        n_games_to_fetch, n_gens_to_fetch_per_game)
+    let (local a_index) = game_index_from_inventory.read(user_address, idx)
+
+    let (credits) = has_credits.read(owner_id)
+    let games_owned = n_games_to_fetch
     return(
+        credits,
+        games_owned_len,
+        games_owned,
+
+
 
     )
 end
@@ -889,6 +912,80 @@ func get_arbitrary_game_data{
 end
 
 ##### Private functions #####
+# Gets m games with n states. 1D array representing a 2D state array.
+func append_recent_user_games{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user : felt,
+        user_inventory_indices : felt*,
+        n_games : felt,
+        n_gens_per_game : felt
+    ):
+    if n_games = 0
+        return ()
+    end
+    get_recent_user_data(user, user_inventory_indices,
+        n_games - 1, n_gens_per_game)
+    # Upon first entry here, n_games=1.
+    let game_index = n_games - 1
+    game_index = user_inventory_indices
+    # For each game, loop over the requested number of recent states.
+    append_recent_game_states(user, )
+
+    return ()
+end
+
+# Adds n most recent states to particular game in users inventory.
+func append_recent_game_states{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user : felt,
+        user_inventory_indices : felt*,
+        n_games : felt,
+        n_gens_per_game : felt
+    ):
+    if n_states = 0
+        return ()
+    end
+    append_recent_game_states()
+    # Upon first entry here, n_games=1.
+    let game_index = n_games - 1
+    # For each game, loop over the requested number of recent states.
+    append_recent_game_states()
+
+    return ()
+end
+
+
+
+# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
+func build_array{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        x : felt,
+        n : felt,
+        array : felt*
+    ):
+    # Returns a descending array of continuous numbers.
+    if n == 0:
+        return ()
+    end
+    build_array(x, n-1, array)
+    # n=1 upon first entry here.
+    let index = n - 1
+    assert array[index] = x - index
+    return ()
+end
+
 
 # For a list of gen_ids, adds state to a state array (for a frontend).
 func append_states{
@@ -897,6 +994,7 @@ func append_states{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
+        game_index : felt,
         len : felt,
         gen_id_array : felt*,
         states : felt*
