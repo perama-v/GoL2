@@ -911,7 +911,10 @@ func get_arbitrary_game_data{
     )
 end
 
+#############################
 ##### Private functions #####
+#############################
+
 # Gets m games with n states. 1D array representing a 2D state array.
 func append_recent_user_games{
         syscall_ptr : felt*,
@@ -923,45 +926,30 @@ func append_recent_user_games{
         user_inventory_indices : felt*,
         n_games : felt,
         n_gens_per_game : felt
+        states : felt*
     ):
+    alloc_locals
     if n_games = 0
         return ()
     end
     get_recent_user_data(user, user_inventory_indices,
         n_games - 1, n_gens_per_game)
     # Upon first entry here, n_games=1.
-    let game_index = n_games - 1
-    game_index = user_inventory_indices
+    let inventory_index = n_games - 1
+    # Get the global game index using the index of the players inventory.
+    let game_index = user_inventory_indices[inventory_index]
+    # Get the most recent index for the given game
+    let (latest_gen) = latest_game_generation.read(game_index)
+    # Calculate the offset for this particular game
+    let offset = m * n * 32 # TODO
+    # Build an array of the desired generations.
+    let (local game_gens : felt*) = alloc()
+    build_array(latest_gen, n_gens_per_game, game_gens)
     # For each game, loop over the requested number of recent states.
-    append_recent_game_states(user, )
+    append_states(game_index, n_gens_per_game, game_gens, states, offset)
 
     return ()
 end
-
-# Adds n most recent states to particular game in users inventory.
-func append_recent_game_states{
-        syscall_ptr : felt*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        user : felt,
-        user_inventory_indices : felt*,
-        n_games : felt,
-        n_gens_per_game : felt
-    ):
-    if n_states = 0
-        return ()
-    end
-    append_recent_game_states()
-    # Upon first entry here, n_games=1.
-    let game_index = n_games - 1
-    # For each game, loop over the requested number of recent states.
-    append_recent_game_states()
-
-    return ()
-end
-
 
 
 # Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
@@ -997,54 +985,57 @@ func append_states{
         game_index : felt,
         len : felt,
         gen_id_array : felt*,
-        states : felt*
+        states : felt*,
+        offset : felt
     ):
     # This helper function can be used to grab a large number of specific
+    # The offset is where to start appending this particular
+    # set of states (there may be preceeding games in the array).
     # states for a frontend to quickly get game data.
     if len == 0:
         return ()
     end
     # Loop with recursion.
-    append_states(len - 1, gen_id_array, states)
+    append_states(game_index, len - 1, gen_id_array, states, offset)
     let index = len - 1
     # Get rows for the n-th requested generation.
     let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
         r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
         r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
-        r30, r31) = view_game(gen_id_array[index])
+        r30, r31) = view_game(game_index, gen_id_array[index])
     # Append 32 new rows to the multi-state for every gen requested.
-    assert states[index * 32 + 0] = r0
-    assert states[index * 32 + 1] = r1
-    assert states[index * 32 + 2] = r2
-    assert states[index * 32 + 3] = r3
-    assert states[index * 32 + 4] = r4
-    assert states[index * 32 + 5] = r5
-    assert states[index * 32 + 6] = r6
-    assert states[index * 32 + 7] = r7
-    assert states[index * 32 + 8] = r8
-    assert states[index * 32 + 9] = r9
-    assert states[index * 32 + 10] = r10
-    assert states[index * 32 + 11] = r11
-    assert states[index * 32 + 12] = r12
-    assert states[index * 32 + 13] = r13
-    assert states[index * 32 + 14] = r14
-    assert states[index * 32 + 15] = r15
-    assert states[index * 32 + 16] = r16
-    assert states[index * 32 + 17] = r17
-    assert states[index * 32 + 18] = r18
-    assert states[index * 32 + 19] = r19
-    assert states[index * 32 + 20] = r20
-    assert states[index * 32 + 21] = r21
-    assert states[index * 32 + 22] = r22
-    assert states[index * 32 + 23] = r23
-    assert states[index * 32 + 24] = r24
-    assert states[index * 32 + 25] = r25
-    assert states[index * 32 + 26] = r26
-    assert states[index * 32 + 27] = r27
-    assert states[index * 32 + 28] = r28
-    assert states[index * 32 + 29] = r29
-    assert states[index * 32 + 30] = r30
-    assert states[index * 32 + 31] = r31
+    assert states[offset + index * 32 + 0] = r0
+    assert states[offset + index * 32 + 1] = r1
+    assert states[offset + index * 32 + 2] = r2
+    assert states[offset + index * 32 + 3] = r3
+    assert states[offset + index * 32 + 4] = r4
+    assert states[offset + index * 32 + 5] = r5
+    assert states[offset + index * 32 + 6] = r6
+    assert states[offset + index * 32 + 7] = r7
+    assert states[offset + index * 32 + 8] = r8
+    assert states[offset + index * 32 + 9] = r9
+    assert states[offset + index * 32 + 10] = r10
+    assert states[offset + index * 32 + 11] = r11
+    assert states[offset + index * 32 + 12] = r12
+    assert states[offset + index * 32 + 13] = r13
+    assert states[offset + index * 32 + 14] = r14
+    assert states[offset + index * 32 + 15] = r15
+    assert states[offset + index * 32 + 16] = r16
+    assert states[offset + index * 32 + 17] = r17
+    assert states[offset + index * 32 + 18] = r18
+    assert states[offset + index * 32 + 19] = r19
+    assert states[offset + index * 32 + 20] = r20
+    assert states[offset + index * 32 + 21] = r21
+    assert states[offset + index * 32 + 22] = r22
+    assert states[offset + index * 32 + 23] = r23
+    assert states[offset + index * 32 + 24] = r24
+    assert states[offset + index * 32 + 25] = r25
+    assert states[offset + index * 32 + 26] = r26
+    assert states[offset + index * 32 + 27] = r27
+    assert states[offset + index * 32 + 28] = r28
+    assert states[offset + index * 32 + 29] = r29
+    assert states[offset + index * 32 + 30] = r30
+    assert states[offset + index * 32 + 31] = r31
 
     return ()
 end
