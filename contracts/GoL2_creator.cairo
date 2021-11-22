@@ -940,8 +940,9 @@ func append_recent_user_games{
     let game_index = user_inventory_indices[inventory_index]
     # Get the most recent index for the given game
     let (latest_gen) = latest_game_generation.read(game_index)
-    # Calculate the offset for this particular game
-    let offset = m * n * 32 # TODO
+    # Calculate the offset for this particular game.
+    # For the first game in the inventory, offset=0.
+    let offset = inventory_index * n_gens_per_game * 32
     # Build an array of the desired generations.
     let (local game_gens : felt*) = alloc()
     build_array(latest_gen, n_gens_per_game, game_gens)
