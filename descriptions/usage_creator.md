@@ -174,7 +174,10 @@ This can be rendered in different styles, for example:
 
 
 ```
-Make the zero-address (testing pre-accounts) evolve one generation:
+Make the zero-address (testing pre-accounts) evolve one generation.
+This call can only be made from an account contract. The function
+asserts that the calling address is not zero, which means all
+calls must originate from an account contract.
 ```
 nile invoke GoL2_creator contribute 0
 ```

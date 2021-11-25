@@ -175,7 +175,7 @@ async def test_getter(game_factory):
     requested_states = games * gens
     states = []
     for i in range(0, requested_states, 32):
-        game = requested_states[i:i + 32]
+        game = r.result.states[i:i + 32]
         states.append(game)
     await view(states)
 

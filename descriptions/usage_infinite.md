@@ -250,6 +250,11 @@ has not yet been used to give life.
 Make, for user 1, a particular cell (row index `9` and column index `9`) become alive,
 specifying that token id 2 is being redeemed.
 
+
+This invoke call (and all invoke calls) can only be made from an account
+contract. The function
+asserts that the calling address is not zero, which means all
+calls must originate from an account contract.
 ```
 nile invoke GoL2_infinite give_life_to_cell 1 9 9 2
 
