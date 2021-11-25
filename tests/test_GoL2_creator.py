@@ -65,7 +65,7 @@ async def test_create(game_factory):
 
     # First generate 10 credits by progressing another game.
     response = await game.newest_game().call()
-    (first_index, first_game_id, newest_gen) = response.result
+    (first_game_index, first_game_id, newest_gen) = response.result
 
     N_CONTRIB = 10
     for i in range(N_CONTRIB):
@@ -75,7 +75,7 @@ async def test_create(game_factory):
             account=accounts[0],
             to=game.contract_address,
             selector_name='contribute',
-            calldata=[first_game_id])
+            calldata=[first_game_index])
 
     # Make sure credits were given.
     response = await game.user_counts(
@@ -86,6 +86,10 @@ async def test_create(game_factory):
 
     # Redeem credits
     row_states = [ 2**(i) for i in range(32) ]
+    # Add an acorn to the diagram
+    row_states[12] = 32
+    row_states[13] = 8
+    row_states[14] = 103
 
     await signers[0].send_transaction(
         account=accounts[0],
@@ -97,21 +101,20 @@ async def test_create(game_factory):
     # Check that the user has a game.
     response = await game.specific_game_of_user(
         accounts[0].contract_address, 0).call()
-    assert response.result.game_index == first_index + 1
+    assert response.result.game_index == first_game_index + 1
 
     # Check that the game was recorded as the latest game.
     response = await game.newest_game().call()
     index = response.result.game_index
-    assert index == first_index + 1
-
+    assert index == first_game_index + 1
     response = await game.view_game(index, 0).call()
     (im) = response.result
     view([im])
     print('Above is the newly created game')
 
-    response = await game.generation_of_game(first_index).call()
+    response = await game.generation_of_game(index).call()
     gen = response.result.generation
-    response = await game.view_game(first_index, gen).call()
+    response = await game.view_game(index, gen).call()
     (im) = response.result
     view([im])
     print('Above is the first game after being progressed 10 times.')
@@ -125,8 +128,59 @@ async def test_create(game_factory):
     print(recent_generations.result)
     print(user_data.result)
 
+    r = await game.get_recent_user_data(accounts[0].contract_address,
+        5, 5).call()
+    print("credits:", r.result.credits)
+    print("games_owned:", r.result.games_owned)
+    print("five latest states per game:")
+    print(r.result.states)
 
-def view(images):
+
+@pytest.mark.asyncio
+async def test_getter(game_factory):
+    _, game, accounts = game_factory
+    # Another player comes and contributes to the first's game.
+    N_CONTRIB = 10
+
+    for i in range(N_CONTRIB):
+        print(f'Done with {i}')
+
+        await signers[1].send_transaction(
+            account=accounts[1],
+            to=game.contract_address,
+            selector_name='contribute',
+            calldata=[0])
+
+
+    # Acorn top right.
+    row_states = [0]*32
+    row_states[2] = 32
+    row_states[3] = 8
+    row_states[4] = 103
+
+    await signers[1].send_transaction(
+        account=accounts[1],
+        to=game.contract_address,
+        selector_name='create',
+        calldata=row_states)
+
+    games = 5
+    gens = 5
+    r = await game.get_recent_user_data(accounts[1].contract_address,
+        games, gens).call()
+    print("credits:", r.result.credits)
+    print("games_owned:", r.result.games_owned)
+    print("five latest states per game:")
+    print(r.result.states)
+    requested_states = games * gens
+    states = []
+    for i in range(0, requested_states, 32):
+        game = r.result.states[i:i + 32]
+        states.append(game)
+    await view(states)
+
+
+async def view(images):
     # For an even grid appearance:
     # .replace('1','■ ').replace('0','. ')
     for index, image in enumerate(images):

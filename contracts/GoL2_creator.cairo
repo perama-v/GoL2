@@ -215,6 +215,7 @@ func create{
     # by index=1,  function accepts the list
 
     let (local caller) = get_caller_address()
+    assert_not_zero(caller)
     # Check that the caller has enough credits, subtract some.
     # TODO Uncomment and test credits
     let (credits) = has_credits.read(caller)
@@ -313,6 +314,7 @@ func contribute{
 
     # Save the user data.
     let (user) = get_caller_address()
+    assert_not_zero(user)
     # Give a credit for advancing this particular game.
     let (credits) = has_credits.read(user)
     has_credits.write(user, credits + 1)
@@ -601,7 +603,7 @@ func get_recent_generations_of_game{
     # Can return the states of a single game
     # for indices n, n-1, n-2, n-3, n-4, where
     # n is the the specified index. If the index specified is 0,
-    # the n is set to the latest ga.
+    # the n is set to the latest game.
     alloc_locals
     # If the caller used '0', use the latest ID, otherwise use specified.
     let (index) = latest_game_index.read()
@@ -789,7 +791,184 @@ func get_user_data{
         e30, e31)
 end
 
+# Fetch state for a particular user to some depth from most recent.
+@view
+func get_recent_user_data{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user_address : felt,
+        n_games_to_fetch : felt,
+        n_gens_to_fetch_per_game : felt
+    ) -> (
+        credits : felt,
+        games_owned_len : felt,
+        games_owned : felt*,
+        states_len : felt,
+        states : felt*
+    ):
+    alloc_locals
+    # Returns:
+    # An array of m games with n states per game:
+        # game_a: sa sb sc sd
+        # game_b: sa sb sc sd
+        #. etc.
+        # Length = m * n * 32
+    let (local count) = user_game_count.read(user_address)
+    let (local inventory_indices : felt*) = alloc()
+    # Build a list of games of interest that the player owns.
+    # E.g., get 5 of the users games with indices: 9, 8, 7, 6 & 5.
+    build_array(count - 1, n_games_to_fetch, inventory_indices)
+    # Length of the state array:
+    let states_len = n_games_to_fetch * n_gens_to_fetch_per_game * 32
+    let (local states : felt*) = alloc()
+    append_recent_user_games(user_address, inventory_indices,
+        n_games_to_fetch, n_gens_to_fetch_per_game, states)
+    let (local a_index) = game_index_from_inventory.read(
+        user_address, inventory_indices[0])
+
+    let (credits) = has_credits.read(user_address)
+    return(
+        credits,
+        n_games_to_fetch,
+        inventory_indices,
+        states_len,
+        states)
+end
+
+#############################
 ##### Private functions #####
+#############################
+
+# Gets m games with n states. 1D array representing a 2D state array.
+func append_recent_user_games{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user : felt,
+        user_inventory_indices : felt*,
+        n_games : felt,
+        n_gens_per_game : felt,
+        states : felt*
+    ):
+    alloc_locals
+    if n_games == 0:
+        return ()
+    end
+    append_recent_user_games(user, user_inventory_indices,
+        n_games - 1, n_gens_per_game, states)
+    # Upon first entry here, n_games=1.
+    let inventory_index = n_games - 1
+    # Get the global game index using the index of the players inventory.
+    let game_index = user_inventory_indices[inventory_index]
+    # Get the most recent index for the given game
+    let (latest_gen) = latest_game_generation.read(game_index)
+    # Calculate the offset for this particular game.
+    # For the first game in the inventory, offset=0.
+    let offset = inventory_index * n_gens_per_game * 32
+    # Build an array of the desired generations.
+    let (local game_gens : felt*) = alloc()
+    build_array(latest_gen, n_gens_per_game, game_gens)
+    # For each game, loop over the requested number of recent states.
+    append_states(game_index, n_gens_per_game, game_gens, states, offset)
+
+    return ()
+end
+
+
+# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
+func build_array{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        x : felt,
+        n : felt,
+        array : felt*
+    ):
+    # Returns a descending array of continuous numbers.
+    if n == 0:
+        return ()
+    end
+    build_array(x, n-1, array)
+    # n=1 upon first entry here.
+    let index = n - 1
+    assert array[index] = x - index
+    return ()
+end
+
+
+# For a list of gen_ids, adds state to a state array (for a frontend).
+func append_states{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        game_index : felt,
+        len : felt,
+        gen_id_array : felt*,
+        states : felt*,
+        offset : felt
+    ):
+    # This helper function can be used to grab a large number of specific
+    # The offset is where to start appending this particular
+    # set of states (there may be preceeding games in the array).
+    # states for a frontend to quickly get game data.
+    if len == 0:
+        return ()
+    end
+    # Loop with recursion.
+    append_states(game_index, len - 1, gen_id_array, states, offset)
+    let index = len - 1
+    # Get rows for the n-th requested generation.
+    let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
+        r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
+        r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
+        r30, r31) = view_game(game_index, gen_id_array[index])
+    # Append 32 new rows to the multi-state for every gen requested.
+    assert states[offset + index * 32 + 0] = r0
+    assert states[offset + index * 32 + 1] = r1
+    assert states[offset + index * 32 + 2] = r2
+    assert states[offset + index * 32 + 3] = r3
+    assert states[offset + index * 32 + 4] = r4
+    assert states[offset + index * 32 + 5] = r5
+    assert states[offset + index * 32 + 6] = r6
+    assert states[offset + index * 32 + 7] = r7
+    assert states[offset + index * 32 + 8] = r8
+    assert states[offset + index * 32 + 9] = r9
+    assert states[offset + index * 32 + 10] = r10
+    assert states[offset + index * 32 + 11] = r11
+    assert states[offset + index * 32 + 12] = r12
+    assert states[offset + index * 32 + 13] = r13
+    assert states[offset + index * 32 + 14] = r14
+    assert states[offset + index * 32 + 15] = r15
+    assert states[offset + index * 32 + 16] = r16
+    assert states[offset + index * 32 + 17] = r17
+    assert states[offset + index * 32 + 18] = r18
+    assert states[offset + index * 32 + 19] = r19
+    assert states[offset + index * 32 + 20] = r20
+    assert states[offset + index * 32 + 21] = r21
+    assert states[offset + index * 32 + 22] = r22
+    assert states[offset + index * 32 + 23] = r23
+    assert states[offset + index * 32 + 24] = r24
+    assert states[offset + index * 32 + 25] = r25
+    assert states[offset + index * 32 + 26] = r26
+    assert states[offset + index * 32 + 27] = r27
+    assert states[offset + index * 32 + 28] = r28
+    assert states[offset + index * 32 + 29] = r29
+    assert states[offset + index * 32 + 30] = r30
+    assert states[offset + index * 32 + 31] = r31
+
+    return ()
+end
+
+
 # Pre-sim. Walk rows then columns to build state.
 func unpack_rows{
         syscall_ptr : felt*,

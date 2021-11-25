@@ -152,6 +152,9 @@ func evolve_and_claim_next_generation{
     #let (user) = get_caller_address()
     # For testing, skip account contract use. TODO add accounts.
     let user = user_id
+    let (caller) = get_caller_address()
+    assert_not_zero(caller)
+    assert user = caller
 
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
@@ -180,9 +183,10 @@ func give_life_to_cell{
     alloc_locals
 
     # Only the caller can redeem
-    # let (user) = get_caller_address()
+    let (user) = get_caller_address()
     # For testing, skip account contract use. TODO add accounts.
-    let user = user_id
+    assert user = user_id
+    assert_not_zero(user)
 
     let (local owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
     # Enable this check when accounts are used.
@@ -697,7 +701,7 @@ func get_arbitrary_state_arrays{
 end
 
 ##### Private functions #####
-# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n].
+# Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
 func build_array{
         syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,

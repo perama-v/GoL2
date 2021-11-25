@@ -17,7 +17,36 @@ current generation, which can be used to view the current (or
 any historical) game state. The game_id is a unique game hash of
 the spawn state and is just used for uniqueness checks.
 
-An efficient function to get recently made games is:
+For a given user, one way to get information about games they have
+created is with `get_recent_user_data`. A player may have started
+multiple games, and these games might be at different generations.
+The function allows specification of how many of these games
+are desired, and how many states are of interest. E.g., it might be
+good to ask for the 5 most recent games, and to get 6 states for each
+game. If the player has fewer games or the games have fewer states,
+then the result for these will be obvious: empty or unreasonable values (underflows).
+
+```
+get_recent_user_data(
+    user_address : felt,
+    n_games_to_fetch : felt,
+    n_gens_to_fetch_per_game : felt
+)
+```
+The function returns how many credits a player has, a array of the
+index identifying the games, and an array of the states:
+```
+# An array of m games with n states per game:
+        # game_a: sa sb sc sd
+        # game_b: sa sb sc sd
+        #. etc.
+        # Length = m * n * 32
+```
+
+The values returned can be seen, along with descriptions, in the
+function in `/contracts/GoL_creator.cairo`.
+
+Another efficient function to get recently made games is:
 
 ```
 get_recently_created(0)
@@ -145,7 +174,10 @@ This can be rendered in different styles, for example:
 
 
 ```
-Make the zero-address (testing pre-accounts) evolve one generation:
+Make the zero-address (testing pre-accounts) evolve one generation.
+This call can only be made from an account contract. The function
+asserts that the calling address is not zero, which means all
+calls must originate from an account contract.
 ```
 nile invoke GoL2_creator contribute 0
 ```
