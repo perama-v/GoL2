@@ -215,6 +215,7 @@ func create{
     # by index=1,  function accepts the list
 
     let (local caller) = get_caller_address()
+    assert_not_zero(caller)
     # Check that the caller has enough credits, subtract some.
     # TODO Uncomment and test credits
     let (credits) = has_credits.read(caller)
@@ -313,6 +314,7 @@ func contribute{
 
     # Save the user data.
     let (user) = get_caller_address()
+    assert_not_zero(user)
     # Give a credit for advancing this particular game.
     let (credits) = has_credits.read(user)
     has_credits.write(user, credits + 1)
@@ -810,11 +812,11 @@ func get_recent_user_data{
     alloc_locals
     # Returns:
     # An array of m games with n states per game:
-        # game_b: sa sb sc sd
+        # game_a: sa sb sc sd
         # game_b: sa sb sc sd
         #. etc.
         # Length = m * n * 32
-    let (count) = user_game_count.read(user_address)
+    let (local count) = user_game_count.read(user_address)
     let (local inventory_indices : felt*) = alloc()
     # Build a list of games of interest that the player owns.
     # E.g., get 5 of the users games with indices: 9, 8, 7, 6 & 5.
@@ -822,93 +824,18 @@ func get_recent_user_data{
     # Length of the state array:
     let states_len = n_games_to_fetch * n_gens_to_fetch_per_game * 32
     let (local states : felt*) = alloc()
-    append_recent_user_games(user, inventory_indices,
-        n_games_to_fetch, n_gens_to_fetch_per_game)
-    let (local a_index) = game_index_from_inventory.read(user_address, idx)
+    append_recent_user_games(user_address, inventory_indices,
+        n_games_to_fetch, n_gens_to_fetch_per_game, states)
+    let (local a_index) = game_index_from_inventory.read(
+        user_address, inventory_indices[0])
 
-    let (credits) = has_credits.read(owner_id)
-    let games_owned = n_games_to_fetch
+    let (credits) = has_credits.read(user_address)
     return(
         credits,
-        games_owned_len,
-        games_owned,
-
-
-
-    )
-end
-
-
-# Fetch state for a particular user to some depth from most recent.
-@view
-func get_arbitrary_user_data{
-        syscall_ptr : felt*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        user_address : felt,
-        games_to_fetch_array_len : felt,
-        games_to_fetch_array : felt*,
-        gens_to_fetch_per_game_array_len : felt,
-        gens_to_fetch_per_game_array : felt*
-    ) -> (
-
-    ):
-
-    # Used to 'fill in the gaps'
-
-    return ()
-end
-
-
-# Fetch state for a recently made games to some depth from most recent.
-@view
-func get_recent_game_data{
-        syscall_ptr : felt*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        n_games_to_fetch : felt,
-        n_gens_to_fetch_per_game : felt
-    ) -> (
-        latest_game_index : felt,
-        latest_gen_of_each_game_len : felt,
-        latest_gen_of_each_game : felt*,
-        states_len : felt,
-        states : felt*
-    ):
-
-
-
-    return (
-
-    )
-end
-
-# Fetch state for a recently made games to some depth from most recent.
-@view
-func get_arbitrary_game_data{
-        syscall_ptr : felt*,
-        bitwise_ptr : BitwiseBuiltin*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        games_to_fetch_array_len : felt,
-        games_to_fetch_array : felt*
-        gens_to_fetch_per_game_array_len : felt,
-        gens_to_fetch_per_game_array : felt*
-    ) -> (
-        states_len : felt,
-        states : felt*
-    ):
-
-    # Used to fill in the gaps.
-
-    return (
-
-    )
+        n_games_to_fetch,
+        inventory_indices,
+        states_len,
+        states)
 end
 
 #############################
@@ -925,15 +852,15 @@ func append_recent_user_games{
         user : felt,
         user_inventory_indices : felt*,
         n_games : felt,
-        n_gens_per_game : felt
+        n_gens_per_game : felt,
         states : felt*
     ):
     alloc_locals
-    if n_games = 0
+    if n_games == 0:
         return ()
     end
-    get_recent_user_data(user, user_inventory_indices,
-        n_games - 1, n_gens_per_game)
+    append_recent_user_games(user, user_inventory_indices,
+        n_games - 1, n_gens_per_game, states)
     # Upon first entry here, n_games=1.
     let inventory_index = n_games - 1
     # Get the global game index using the index of the players inventory.
