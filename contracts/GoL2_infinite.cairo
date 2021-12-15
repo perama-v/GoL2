@@ -700,6 +700,37 @@ func get_arbitrary_state_arrays{
         n_latest_give_life_result)
 end
 
+# @notice Returns the details of give life tokens for a given player.
+# @param token_ids Array of token ids owned by the user.
+# @param gave_life_at Array of generations where a token was redeemed (0=unused).
+@view
+func get_user_tokens{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user_id : felt
+    ) -> (
+        token_ids_len : felt,
+        token_ids : felt*,
+        gave_life_at_len : felt,
+        gave_life_at : felt*,
+    ):
+    alloc_locals
+    let (local count) = count_tokens_owned.read(user_id)
+    let (local token_ids : felt*) = alloc()
+    let (local gave_life_at : felt*) = alloc()
+
+    append_token_data(user_id, count, token_ids, gave_life_at)
+    return (
+        count,
+        token_ids,
+        count,
+        gave_life_at
+    )
+end
+
 ##### Private functions #####
 # Creates an array of n numbers starting from x: [x, x-1, x-2, x-n-1].
 func build_array{
@@ -721,6 +752,38 @@ func build_array{
     assert array[index] = x - index
     return ()
 end
+
+# @notice For a known number of tokens owned by a user, returns a list of their ids.
+# @dev Iterates recursively over n, using that as the users nth token.
+# @param n Number of tokens the user owns.
+# @param token_ids Empty array to populate with ids.
+# @param gave_life_at Empty array to populate with when token was redeemed (unused=0).
+func append_token_data{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        user_id : felt,
+        n : felt,
+        token_ids : felt*,
+        gave_life_at : felt*
+    ):
+    if n == 0:
+        return ()
+    end
+    append_token_data(user_id, n - 1, token_ids, gave_life_at)
+    # n=1 upon first entry here.
+    let index = n - 1
+    let (gen_id) = generation_of_owner.read(user_id, index)
+    # Add id.
+    assert token_ids[index] = gen_id
+    # Add details about whether and when it has given life yet.
+    let (redeemed_at) = token_redeemed_at.read(gen_id)
+    assert gave_life_at[index] = redeemed_at
+    return ()
+end
+
 
 # For a list of gen_ids, adds state to a state array (for a frontend).
 func append_states{
