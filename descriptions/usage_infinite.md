@@ -62,6 +62,20 @@ this will return:
 - Array of n recent give life results. (Same format as above)
 
 
+## Get user tokens query
+
+This function is used to get the number of available credits for a
+given player (user_id=1234567)
+
+```
+nile call get_user_tokens 1234567
+```
+
+Returns two arrays,
+
+    - Token ids.
+    - Generation in which the token was redeemed. Zero if unused.
+
 ## Data fetching flow: General Data Method 2
 
 This version of game has generation ids that progress continuously.
@@ -294,9 +308,14 @@ nile call GoL2_infinite latest_useful_state 0
 The above result includes the game generation, ten most recent claimed
 tokens, and the three most recent game states.
 
-Fetch the image of multiple generations
+Fetch the image of multiple generations:
+
+specific generations: 5 20 21 22 23 24
+n recent generations: 6
+give life events: 3 23 24 25
+n recent give life: 7
 ```
-nile call GoL2_infinite get_arbitrary_state_arrays 3 1 2 3
+nile call GoL2_infinite get_arbitrary_state_arrays 5 20 21 22 23 24 6 3 23 24 25 7
 
 3 96 0 0 0 0 0 0 0 0 0 0 0 0 32 8 103 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4194304 0 0 0 118 6 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 46 41 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```

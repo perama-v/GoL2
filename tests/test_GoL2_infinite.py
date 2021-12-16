@@ -191,6 +191,16 @@ async def test_give_life(game_factory):
             4, user_token_id).invoke()
     print('Passed: Token cannot be redeemed twice')
 
+    response = await game.get_user_tokens(USER_IDS[0]).call()
+    tokens = response.result.token_ids
+    usage = response.result.gave_life_at
+    print(f'User {USER_IDS[0]}token data:)')
+    [
+        print(f'Token {tokens[i]} was used in generation: {usage[i]}')
+        for i in range(len(usage))
+    ]
+
+
 async def display(image):
     print('')
     [
