@@ -10,7 +10,7 @@ DUMMY_PRIVATE = 12345678987654321
 signers = []
 
 # Temporary user_ids to bypass account verification
-USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576]
+USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576] * 6
 
 # Game constants
 DIM = 32
