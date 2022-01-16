@@ -1,5 +1,6 @@
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import unsigned_div_rem
+from starkware.cairo.common.math_cmp import is_nn, is_le, is_in_range
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 
@@ -105,6 +106,7 @@ func get_adjacent{
         LD : felt,
         RD : felt
     ):
+    alloc_locals
     # cell_states and pending_states structure:
     #         Row 0               Row 1              Row 2
     #  <-------DIM-------> <-------DIM-------> <-------DIM------->
@@ -113,6 +115,7 @@ func get_adjacent{
     let (row, col) = unsigned_div_rem(cell_idx, DIM)
     let len = DIM * DIM
     let row_start = row * DIM
+
     # LU U RU
     # L  .  R
     # LD D RD
@@ -124,34 +127,103 @@ func get_adjacent{
     # 3. Add DIM to make positive (+ DIM).
     # 4. Take modulo DIM to keep in range [0, DIM] (% DIM).
     # 5. Add row for index of wrapped neighbour (+ row_start).
-    let (_, L) = unsigned_div_rem(cell_idx - 1 - row_start + DIM,
-        DIM)
-    let L = L + row_start
+    local L
+    local R
+    local U
+    local D
+    local LU
+    local RU
+    local LD
+    local RD
+
+    if col == 0:
+        # Cell is on left, and needs to wrap.
+        assert L = cell_idx + 31
+    else:
+        assert L = cell_idx - 1
+    end
+        # let (_, L) = unsigned_div_rem(cell_idx - 1 - row_start + DIM,
+        #    DIM)
+        # let L = L + row_start
 
     # Moving right and wrapping around from the left:
     # 1. Move right by one (cell_idx + 1).
     # 2. Move to range [0, DIM] (- row_start).
     # 3. Take modulo DIM to keep in range [0, DIM] (% DIM).
     # 4. Add row for index of wrapped neighbour (+ row_start).
-    let (_, R) = unsigned_div_rem(cell_idx + 1 - row_start, DIM)
-    let R = R + row_start
+
+    if col - 31 == 0:
+        # Cell is on right, and needs to wrap.
+        assert R = cell_idx - 31
+    else:
+        assert R = cell_idx + 1
+    end
+        #let (_, R) = unsigned_div_rem(cell_idx + 1 - row_start, DIM)
+        #let R = R + row_start
 
     # Moving down and wrapping down from the top:
     # 1. Move down by one (cell_idx + DIM).
     # 2. If beyond len, wrap (% len).
-    let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
+
+    if row - 31 == 0:
+        # Cell is on bottom, and needs to wrap.
+        assert D = cell_idx - 992 # (DIM - DIM * DIM)
+    else:
+        assert D = cell_idx + DIM
+    end
+        # let (_, D) = unsigned_div_rem(cell_idx + DIM, len)
 
     # Moving up and wrapping up from bottom:
     # 1. Move up by one (cell_idx - DIM).
     # 2. Add len to make positive if above grid (+ len).
     # 3. Modulo len (% len).
-    let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
 
+    if row == 0:
+        # Cell is on top, and needs to wrap.
+        assert U = cell_idx + 992 # (DIM * DIM - DIM)
+    else:
+        assert U = cell_idx - DIM
+    end
+        # let (_, U) = unsigned_div_rem(cell_idx - DIM + len, len)
+
+
+    ###
     # First take L or R position and then apply U or D operation.
-    let (_, LU) = unsigned_div_rem(L - DIM + len, len)
-    let (_, RU) = unsigned_div_rem(R - DIM + len, len)
-    let (_, LD) = unsigned_div_rem(L + DIM, len)
-    let (_, RD) = unsigned_div_rem(R + DIM, len)
+    ###
+
+    if row == 0:
+        # Cell is on top, and needs to wrap.
+        assert LU = L + 992 # (DIM * DIM - DIM)
+    else:
+        assert LU = L - DIM
+    end
+        #let (_, LU) = unsigned_div_rem(L - DIM + len, len)
+
+    if row == 0:
+        # Cell is on top, and needs to wrap.
+        assert RU = R + 992 # (DIM * DIM - DIM)
+    else:
+        assert RU = R - DIM
+    end
+        #let (_, RU) = unsigned_div_rem(R - DIM + len, len)
+
+    if row - 32 == 0:
+        # Cell is on bottom, and needs to wrap.
+        assert LD = L - 992 # (DIM - DIM * DIM)
+    else:
+        assert LD = L + DIM
+    end
+        #let (_, LD) = unsigned_div_rem(L + DIM, len)
+
+    if row - 32 == 0:
+        # Cell is on bottom, and needs to wrap.
+        assert RD = R - 992 # (DIM - DIM * DIM)
+    else:
+        assert RD = R + DIM
+    end
+        #let (_, RD) = unsigned_div_rem(R + DIM, len)
+
+
 
     return (L=L, R=R, U=U, D=D, LU=LU, RU=RU, LD=LD,
         RD=RD)

@@ -111,9 +111,9 @@ func append_cols{
     append_cols(cell_states=cell_states,
         row=row, col=col-1, stored_row=stored_row)
     # (Note, on first entry, col=1 so col-1 gets the index)
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+    #local pedersen_ptr : HashBuiltin* = pedersen_ptr
+    #local cell_states : felt* = cell_states
+    #local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     # state = 2**column_index AND row_binary
     # Column zero is the MSB, so (DIM_index - col_index) accesses the bit.
     let binary_position = (DIM - 1) - (col - 1)
