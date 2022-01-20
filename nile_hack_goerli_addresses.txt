@@ -1,8 +1,12 @@
+# Temporary issue with nile in this env.
+export STARKNET_NETWORK=alpha-goerli
+starknet deploy --contract artifacts/GoL2_infinite.json
+starknet deploy --contract artifacts/GoL2_creator.json
+
 Infinite:
-Contract address: 0x053eca67bb1e427ab302371aa7075b98145e3c6f2535d6d0ee6649c26683d1f6
-Transaction hash: 0x6a64fe2f1ddc28a93aaa8a27bb220ff427afb88f89ddacbb3c4ed4abf7fecae
+Contract address: 0x047db2fc6ad8ec8791022e2b3543731c13505e9d6ba132dc0a662b3c96f16879
+Transaction hash: 0x23fcfe52e2a1ddb0e557b1cd59e3eb33a526e7bf48df7f84c36183576ccbb24
 
 Creator:
-Contract address: 0x06c18c52c788ae56f567617ce334d3f0e97ce69a61621127bccd8c938012ba7c
-Transaction hash: 0x32a93966fca5a41e3f7dae81867ee88a3a08007f0b02c5f7c1816eecd9b5949
-
+Contract address: 0x05041607b169001d1e09edf55d38057507ca69739b98d8cb957ba34b7a5d8463
+Transaction hash: 0x5662a8f61e278e7a9d6ae4cf6ec3945f9894b0c69e6bf4874d6ac02dc67054b
