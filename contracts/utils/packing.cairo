@@ -1,7 +1,9 @@
+from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.pow import pow
 from starkware.cairo.common.bitwise import bitwise_or, bitwise_and
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
+from starkware.cairo.common.math import split_int
 
 const DIM = 32
 # Post-sim. Walk rows then columns to store state.
@@ -81,14 +83,16 @@ func pack_cols{
     let (bit) = pow(2, binary_position)
     let cell_binary = state * bit
     # store = store OR row_binary
-    let (new_row) = bitwise_or(cell_binary, row_to_store)
+    # Don't need bitwise_or here
+    #let (new_row) = bitwise_or(cell_binary, row_to_store)
+    let new_row = cell_binary + row_to_store
 
     return (new_row)
 end
 
 
 # Pre-sim. Walk columns for a given row and saves state to an array.
-func unpack_cols{
+func append_cols{
         syscall_ptr : felt*,
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
@@ -97,24 +101,26 @@ func unpack_cols{
         cell_states : felt*,
         row : felt,
         col : felt,
-        stored_row : felt
+        stored_row : felt*
     ):
     alloc_locals
     if col == 0:
         return ()
     end
 
-    unpack_cols(cell_states=cell_states,
+    append_cols(cell_states=cell_states,
         row=row, col=col-1, stored_row=stored_row)
     # (Note, on first entry, col=1 so col-1 gets the index)
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr
-    local cell_states : felt* = cell_states
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+    #local pedersen_ptr : HashBuiltin* = pedersen_ptr
+    #local cell_states : felt* = cell_states
+    #local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     # state = 2**column_index AND row_binary
     # Column zero is the MSB, so (DIM_index - col_index) accesses the bit.
     let binary_position = (DIM - 1) - (col - 1)
-    let (mask) = pow(2, binary_position)
-    let (state) = bitwise_and(stored_row, mask)
+    # let (mask) = pow(2, binary_position)
+    # Avoid bitwise builtin use ecause it has a global cap ~1024.
+    # let (state) = bitwise_and(stored_row, mask)
+    let state = stored_row[binary_position]
     # E.g., if in col_index 2, for an alive 'state=4 (0b100)',
     # convert to 1
     local alive_or_dead
@@ -128,4 +134,24 @@ func unpack_cols{
 
 
     return ()
+end
+
+# Performs bitwise_and functionality without using bitwise builtin.
+func custom_bitwise_and{
+        syscall_ptr : felt*,
+        bitwise_ptr : BitwiseBuiltin*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        packed_value : felt,
+        binary_position : felt
+    ) -> (
+        res : felt
+    ):
+    alloc_locals
+    let (local result_array : felt*) = alloc()
+    # Only read up to 32 values.
+    split_int(value=packed_value, n=32, base=2, bound=2, output=result_array)
+    let res = result_array[binary_position]
+    return (res)
 end

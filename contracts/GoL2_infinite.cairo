@@ -6,12 +6,12 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_or
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 from starkware.cairo.common.math import (unsigned_div_rem, assert_nn,
-    assert_not_zero, assert_nn_le, assert_not_equal)
+    assert_not_zero, assert_nn_le, assert_not_equal, split_int)
 from starkware.cairo.common.pow import pow
 from starkware.starknet.common.syscalls import (call_contract,
     get_caller_address)
 
-from contracts.utils.packing import pack_cols, unpack_cols
+from contracts.utils.packing import pack_cols, append_cols
 from contracts.utils.life_rules import (evaluate_rounds,
     apply_rules, get_adjacent)
 
@@ -152,8 +152,8 @@ func evolve_and_claim_next_generation{
     let user = user_id
     let (caller) = get_caller_address()
     # For testing, skip account contract use.
-    # assert_not_zero(caller)
-    # assert user = caller
+    assert_not_zero(caller)
+    assert user = caller
 
     let (prev_tokens) = count_tokens_owned.read(user)
     count_tokens_owned.write(user, prev_tokens + 1)
@@ -184,8 +184,8 @@ func give_life_to_cell{
     # Only the caller can redeem
     let (user) = get_caller_address()
     # For testing, skip account contract use. TODO add accounts.
-    # assert user = user_id
-    # assert_not_zero(user)
+    assert user = user_id
+    assert_not_zero(user)
 
     let (local owner) = owner_of_generation.read(gen_id_of_token_to_redeem)
     # Enable this check when accounts are used.
@@ -919,6 +919,7 @@ func unpack_rows{
         cell_states : felt*,
         row : felt
     ):
+    alloc_locals
     if row == 0:
         return ()
     end
@@ -927,8 +928,17 @@ func unpack_rows{
     # Get the binary encoded store.
     # (Note, on first entry, row=1 so row-1 gets the index)
     let (stored_row) = historical_row.read(gen_id, row-1)
-    unpack_cols(cell_states=cell_states,
-        row=row-1, col=DIM, stored_row=stored_row)
+    # New empty array to store the cell states for that row.
+    let (local stored_row_unpacked : felt*) = alloc()
+    split_int(
+        value=stored_row,
+        n=32,
+        base=2,
+        bound=2,
+        output=stored_row_unpacked)
+    # Pass the 32-long array to add to the cell_states array.
+    append_cols(cell_states=cell_states,
+        row=row-1, col=DIM, stored_row=stored_row_unpacked)
 
     return ()
 end

@@ -10,7 +10,7 @@ DUMMY_PRIVATE = 12345678987654321
 signers = []
 
 # Temporary user_ids to bypass account verification
-USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576]
+USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576] * 6
 
 # Game constants
 DIM = 32
@@ -68,7 +68,7 @@ async def test_game_flow(game_factory):
     assert first_id == 1
     ##### Game progression tests #####
     gens_per_turn = 1
-    turns = 4
+    turns = 1
     # How many generations pass per turn (capped using modulo).
 
     response = await game.view_game(first_id).call()
@@ -78,8 +78,10 @@ async def test_game_flow(game_factory):
     # Run some turns and save the output after each turn.
     prev_id = first_id
     for turn in range(turns):
-        await game.evolve_and_claim_next_generation(
+        res = await game.evolve_and_claim_next_generation(
             USER_IDS[turn]).invoke()
+        print(f"execution info step count for turn {turn} is: ")
+        print(res.call_info.cairo_usage.n_steps)
 
         response = await game.current_generation_id().call()
         id = response.result.gen_id

@@ -119,7 +119,7 @@ pytest -s test/test_GoL2_creator.py::test_function_name
 ### Deploy
 
 ```
-nile deploy GoL2_creator --alias GoL2_creator
+nile deploy GoL2_creator --alias GoL2_creator --netowrk alpha-goerli
 ```
 
 
