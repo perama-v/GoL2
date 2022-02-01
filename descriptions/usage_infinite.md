@@ -171,7 +171,7 @@ pytest -s test/test_GoL2_infinite.py::test_game_flow
 ### Deploy
 
 ```
-nile deploy GoL2_infinite --alias GoL2_infinite --network goerli
+nile deploy GoL2_infinite --network goerli
 
 ```
 TODO - Integrate account

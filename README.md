@@ -89,7 +89,7 @@ revive a chosen cell.
 
 ## Inner Contract Operations
 
-- A player calls `run()`.
+- A player calls the external function to have a turn.
 - Initialization: A `cell_states` array is created to hold the state of all the cells
 (length `dim**2`):
     1. Iterate over `dim` to access rows by index indices)
@@ -106,7 +106,6 @@ revive a chosen cell.
     `cell_states=next_state`.
 - Repeat simulation for `number_of_generations`.
 - Recreate the binary representation of each row and save with `saved_cells.write(row)`.
-- Issue a token to the player.
 
 In `Infinite` mode, a give life action is processed as follows:
 
@@ -114,7 +113,7 @@ In `Infinite` mode, a give life action is processed as follows:
 - The current row is read from storage.
 - The column is applied with a bitwise AND mask to the row.
 - The row is saved to storage.
-- The player loses one give life credi.
+- The player loses one give life credit.
 
 In `Creator` mode, a player submits an array of 32 integers, representing the rows
 of the game. The game then stores these, ensuring that no two starting points are the same.
@@ -123,7 +122,9 @@ Anyone can then evolve that game to earn a creator credit.
 ## Token contract ownership model
 
 The games currently have tokens as an internal representation. There is no ERC20/ERC721
-connected to the game at the moment.
+connected to the game at the moment. Given that each game state is stored
+on chain, another contract could be written to interact with this
+game (e.g. to score games by some metric).
 
 ## Example storage
 
@@ -152,7 +153,7 @@ cairo-lang either with nile or directly.
 Nile:
 
     pip install cairo-nile
-    nile install 0.4.2
+    https://github.com/OpenZeppelin/nile
 
 Directly:
 
