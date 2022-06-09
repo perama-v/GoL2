@@ -839,6 +839,64 @@ func get_recent_user_data{
         states)
 end
 
+# Get info about n recently created games.
+@view
+func get_recent_games{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        number_of_recent_games : felt
+    ) -> (g_game_index, current_gen, game_owner, game_genesis_row_0, game_genesis_row_1, game_genesis_row_2, game_genesis_row_3, game_genesis_row_4, game_genesis_row_5, game_genesis_row_6, game_genesis_row_7, game_genesis_row_8, game_genesis_row_9, game_genesis_row_10, game_genesis_row_11, game_genesis_row_12, game_genesis_row_13, game_genesis_row_14, game_genesis_row_15, game_genesis_row_16, game_genesis_row_17, game_genesis_row_18, game_genesis_row_19, game_genesis_row_20, game_genesis_row_21, game_genesis_row_22, game_genesis_row_23, game_genesis_row_24, game_genesis_row_25, game_genesis_row_26, game_genesis_row_27, game_genesis_row_28, game_genesis_row_29, game_genesis_row_30, game_genesis_row_31
+    ):
+    alloc_locals
+    assert_not_zero(number_of_recent_games)
+
+    # get latest game index
+    let (g_game_index) = latest_game_index.read()
+    # get its current gen
+    let (current_gen) = latest_game_generation.read(g_game_index)
+    # get its genesis state
+    let (game_genesis_row_0) = stored_row.read(game_index=g_game_index, gen=0, row=0)
+    let (game_genesis_row_1) = stored_row.read(game_index=g_game_index, gen=0, row=1)
+    let (game_genesis_row_2) = stored_row.read(game_index=g_game_index, gen=0, row=2)
+    let (game_genesis_row_3) = stored_row.read(game_index=g_game_index, gen=0, row=3)
+    let (game_genesis_row_4) = stored_row.read(game_index=g_game_index, gen=0, row=4)
+    let (game_genesis_row_5) = stored_row.read(game_index=g_game_index, gen=0, row=5)
+    let (game_genesis_row_6) = stored_row.read(game_index=g_game_index, gen=0, row=6)
+    let (game_genesis_row_7) = stored_row.read(game_index=g_game_index, gen=0, row=7)
+    let (game_genesis_row_8) = stored_row.read(game_index=g_game_index, gen=0, row=8)
+    let (game_genesis_row_9) = stored_row.read(game_index=g_game_index, gen=0, row=9)
+    let (game_genesis_row_10) = stored_row.read(game_index=g_game_index, gen=0, row=10)
+    let (game_genesis_row_11) = stored_row.read(game_index=g_game_index, gen=0, row=11)
+    let (game_genesis_row_12) = stored_row.read(game_index=g_game_index, gen=0, row=12)
+    let (game_genesis_row_13) = stored_row.read(game_index=g_game_index, gen=0, row=13)
+    let (game_genesis_row_14) = stored_row.read(game_index=g_game_index, gen=0, row=14)
+    let (game_genesis_row_15) = stored_row.read(game_index=g_game_index, gen=0, row=15)
+    let (game_genesis_row_16) = stored_row.read(game_index=g_game_index, gen=0, row=16)
+    let (game_genesis_row_17) = stored_row.read(game_index=g_game_index, gen=0, row=17)
+    let (game_genesis_row_18) = stored_row.read(game_index=g_game_index, gen=0, row=18)
+    let (game_genesis_row_19) = stored_row.read(game_index=g_game_index, gen=0, row=19)
+    let (game_genesis_row_20) = stored_row.read(game_index=g_game_index, gen=0, row=20)
+    let (game_genesis_row_21) = stored_row.read(game_index=g_game_index, gen=0, row=21)
+    let (game_genesis_row_22) = stored_row.read(game_index=g_game_index, gen=0, row=22)
+    let (game_genesis_row_23) = stored_row.read(game_index=g_game_index, gen=0, row=23)
+    let (game_genesis_row_24) = stored_row.read(game_index=g_game_index, gen=0, row=24)
+    let (game_genesis_row_25) = stored_row.read(game_index=g_game_index, gen=0, row=25)
+    let (game_genesis_row_26) = stored_row.read(game_index=g_game_index, gen=0, row=26)
+    let (game_genesis_row_27) = stored_row.read(game_index=g_game_index, gen=0, row=27)
+    let (game_genesis_row_28) = stored_row.read(game_index=g_game_index, gen=0, row=28)
+    let (game_genesis_row_29) = stored_row.read(game_index=g_game_index, gen=0, row=29)
+    let (game_genesis_row_30) = stored_row.read(game_index=g_game_index, gen=0, row=30)
+    let (game_genesis_row_31) = stored_row.read(game_index=g_game_index, gen=0, row=31)
+    # get the owner
+    let (game_owner) = owner_of_game.read(g_game_index)
+
+    # repeat in recursion, pack into something and return
+
+    return (g_game_index=g_game_index, current_gen=current_gen, game_owner=game_owner, game_genesis_row_0=game_genesis_row_0, game_genesis_row_1=game_genesis_row_1, game_genesis_row_2=game_genesis_row_2, game_genesis_row_3=game_genesis_row_3, game_genesis_row_4=game_genesis_row_4, game_genesis_row_5=game_genesis_row_5, game_genesis_row_6=game_genesis_row_6, game_genesis_row_7=game_genesis_row_7, game_genesis_row_8=game_genesis_row_8, game_genesis_row_9=game_genesis_row_9, game_genesis_row_10=game_genesis_row_10, game_genesis_row_11=game_genesis_row_11, game_genesis_row_12=game_genesis_row_12, game_genesis_row_13=game_genesis_row_13, game_genesis_row_14=game_genesis_row_14, game_genesis_row_15=game_genesis_row_15, game_genesis_row_16=game_genesis_row_16, game_genesis_row_17=game_genesis_row_17, game_genesis_row_18=game_genesis_row_18, game_genesis_row_19=game_genesis_row_19, game_genesis_row_20=game_genesis_row_20, game_genesis_row_21=game_genesis_row_21, game_genesis_row_22=game_genesis_row_22, game_genesis_row_23=game_genesis_row_23, game_genesis_row_24=game_genesis_row_24, game_genesis_row_25=game_genesis_row_25, game_genesis_row_26=game_genesis_row_26, game_genesis_row_27=game_genesis_row_27, game_genesis_row_28=game_genesis_row_28, game_genesis_row_29=game_genesis_row_29, game_genesis_row_30=game_genesis_row_30, game_genesis_row_31=game_genesis_row_31)
+end
+
 #############################
 ##### Private functions #####
 #############################
