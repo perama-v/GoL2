@@ -2,6 +2,7 @@
 *_compiled.json
 artifacts/
 /.vscode
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -78,10 +78,8 @@ async def test_game_flow(game_factory):
     # Run some turns and save the output after each turn.
     prev_id = first_id
     for turn in range(turns):
-        res = await game.evolve_and_claim_next_generation(
-            USER_IDS[turn]).invoke()
-        print(f"execution info step count for turn {turn} is: ")
-        print(res.call_info.cairo_usage.n_steps)
+        await game.evolve_and_claim_next_generation(
+            USER_IDS[turn]).invoke(caller_address=USER_IDS[0])
 
         response = await game.current_generation_id().call()
         id = response.result.gen_id
@@ -131,7 +129,7 @@ async def test_game_flow(game_factory):
     for i in range(0, len(requested_states), 32):
         game = requested_states[i:i + 32]
         states.append(game)
-    await display(states)
+    #await display(states)
 
 
 @pytest.mark.asyncio
@@ -150,12 +148,12 @@ async def test_give_life(game_factory):
 
     with pytest.raises(Exception) as e_info:
         await game.give_life_to_cell(USER_IDS[0], alter_row,
-        alter_col, invalid_token_id).invoke()
+        alter_col, invalid_token_id).invoke(caller_address=USER_IDS[0])
     print(f"Passed: Correctly fails when the claimer is not the owner.")
 
     # First make the player have a turn
     await game.evolve_and_claim_next_generation(
-            USER_IDS[0]).invoke()
+            USER_IDS[0]).invoke(caller_address=USER_IDS[0])
 
     already_alive_row=13
     already_alive_col=30
@@ -171,26 +169,22 @@ async def test_give_life(game_factory):
         already_alive_col, user_token_id).invoke()
     print(f"Passed: Correctly fails when cell is already alive.")
 
-
-
     await game.give_life_to_cell(USER_IDS[0], alter_row,
-        alter_col, user_token_id).invoke()
-
+        alter_col, user_token_id).invoke(caller_address=USER_IDS[0])
 
     response = await game.current_generation_id().call()
     (id_post, ) = response.result
     response = await game.view_game(id_post).call()
     (image_post) = response.result
     await display(image_post)
-
-    assert id_pre == id_post - 1 == 1
+    assert id_pre == id_post - 1
     # Check the cell is alive.
     assert image_post[alter_row] == 2**(DIM - 1 - alter_col)
     print('Passed: Correctly updates a single cell')
 
     with pytest.raises(Exception) as e_info:
         await game.give_life_to_cell(USER_IDS[0], 4,
-            4, user_token_id).invoke()
+            4, user_token_id).invoke(caller_address=USER_IDS[0])
     print('Passed: Token cannot be redeemed twice')
 
     response = await game.get_user_tokens(USER_IDS[0]).call()
