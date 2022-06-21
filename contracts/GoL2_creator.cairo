@@ -30,7 +30,7 @@ from contracts.utils.life_rules import (evaluate_rounds,
 
 ##### Constants #####
 # Width of the simulation grid.
-const DIM = 32
+const DIM = 15
 const CREDIT_REQUIREMENT = 10
 
 ##### Storage #####
@@ -137,9 +137,9 @@ func constructor{
     let (game_id) = hash_game(acorn, 3)
 
     # Acorn. Has no owner.
-    stored_row.write(game_index=0, gen=0, row=12, value=32)
-    stored_row.write(game_index=0, gen=0, row=13, value=8)
-    stored_row.write(game_index=0, gen=0, row=14, value=103)
+    stored_row.write(game_index=0, gen=0, row=6, value=32)
+    stored_row.write(game_index=0, gen=0, row=7, value=8)
+    stored_row.write(game_index=0, gen=0, row=8, value=103)
 
     # Ensure that spawn is only called once. All other games need
     # credits to begin.
@@ -167,13 +167,8 @@ func create{
         row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
         row_4 : felt, row_5 : felt, row_6 : felt, row_7 : felt,
         row_8 : felt, row_9 : felt, row_10 : felt, row_11 : felt,
-        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt,
-        row_16 : felt, row_17 : felt, row_18 : felt, row_19 : felt,
-        row_20 : felt, row_21 : felt, row_22 : felt, row_23 : felt,
-        row_24 : felt, row_25 : felt, row_26 : felt, row_27 : felt,
-        row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
+        row_12 : felt, row_13 : felt, row_14 : felt
     ):
-    # Accepts a 32 element list representing the rows of the game.
     alloc_locals
     let (local genesis_state : felt*) = alloc()
     assert genesis_state[0] = row_0
@@ -191,23 +186,6 @@ func create{
     assert genesis_state[12] = row_12
     assert genesis_state[13] = row_13
     assert genesis_state[14] = row_14
-    assert genesis_state[15] = row_15
-    assert genesis_state[16] = row_16
-    assert genesis_state[17] = row_17
-    assert genesis_state[18] = row_18
-    assert genesis_state[19] = row_19
-    assert genesis_state[20] = row_20
-    assert genesis_state[21] = row_21
-    assert genesis_state[22] = row_22
-    assert genesis_state[23] = row_23
-    assert genesis_state[24] = row_24
-    assert genesis_state[25] = row_25
-    assert genesis_state[26] = row_26
-    assert genesis_state[27] = row_27
-    assert genesis_state[28] = row_28
-    assert genesis_state[29] = row_29
-    assert genesis_state[30] = row_30
-    assert genesis_state[31] = row_31
 
     # TODO - make input an array after resolving this issue:
     # Pytest expects the length to be a list element.
@@ -224,7 +202,7 @@ func create{
     has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
     # No two games are the same. Game_id == genesis hash.
-    let (local game_id) = hash_game(genesis_state, 32)
+    let (local game_id) = hash_game(genesis_state, 15)
     let (existing_index) = game_index_from_game_id.read(game_id)
     # Ensure that the game has not yet been stored to an index.
     assert existing_index = 0
@@ -252,23 +230,6 @@ func create{
     stored_row.write(game_index=idx, gen=0, row=12, value=row_12)
     stored_row.write(game_index=idx, gen=0, row=13, value=row_13)
     stored_row.write(game_index=idx, gen=0, row=14, value=row_14)
-    stored_row.write(game_index=idx, gen=0, row=15, value=row_15)
-    stored_row.write(game_index=idx, gen=0, row=16, value=row_16)
-    stored_row.write(game_index=idx, gen=0, row=17, value=row_17)
-    stored_row.write(game_index=idx, gen=0, row=18, value=row_18)
-    stored_row.write(game_index=idx, gen=0, row=19, value=row_19)
-    stored_row.write(game_index=idx, gen=0, row=20, value=row_20)
-    stored_row.write(game_index=idx, gen=0, row=21, value=row_21)
-    stored_row.write(game_index=idx, gen=0, row=22, value=row_22)
-    stored_row.write(game_index=idx, gen=0, row=23, value=row_23)
-    stored_row.write(game_index=idx, gen=0, row=24, value=row_24)
-    stored_row.write(game_index=idx, gen=0, row=25, value=row_25)
-    stored_row.write(game_index=idx, gen=0, row=26, value=row_26)
-    stored_row.write(game_index=idx, gen=0, row=27, value=row_27)
-    stored_row.write(game_index=idx, gen=0, row=28, value=row_28)
-    stored_row.write(game_index=idx, gen=0, row=29, value=row_29)
-    stored_row.write(game_index=idx, gen=0, row=30, value=row_30)
-    stored_row.write(game_index=idx, gen=0, row=31, value=row_31)
 
     # Update trackers.
     owner_of_game.write(idx, caller)
@@ -410,11 +371,7 @@ func view_game{
         row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
         row_4 : felt, row_5 : felt, row_6 : felt, row_7 : felt,
         row_8 : felt, row_9 : felt, row_10 : felt, row_11 : felt,
-        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt,
-        row_16 : felt, row_17 : felt, row_18 : felt, row_19 : felt,
-        row_20 : felt, row_21 : felt, row_22 : felt, row_23 : felt,
-        row_24 : felt, row_25 : felt, row_26 : felt, row_27 : felt,
-        row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
+        row_12 : felt, row_13 : felt, row_14 : felt
     ):
 
     let (row_0) = stored_row.read(game_index, gen, 0)
@@ -432,30 +389,10 @@ func view_game{
     let (row_12) = stored_row.read(game_index, gen, 12)
     let (row_13) = stored_row.read(game_index, gen, 13)
     let (row_14) = stored_row.read(game_index, gen, 14)
-    let (row_15) = stored_row.read(game_index, gen, 15)
-    let (row_16) = stored_row.read(game_index, gen, 16)
-    let (row_17) = stored_row.read(game_index, gen, 17)
-    let (row_18) = stored_row.read(game_index, gen, 18)
-    let (row_19) = stored_row.read(game_index, gen, 19)
-    let (row_20) = stored_row.read(game_index, gen, 20)
-    let (row_21) = stored_row.read(game_index, gen, 21)
-    let (row_22) = stored_row.read(game_index, gen, 22)
-    let (row_23) = stored_row.read(game_index, gen, 23)
-    let (row_24) = stored_row.read(game_index, gen, 24)
-    let (row_25) = stored_row.read(game_index, gen, 25)
-    let (row_26) = stored_row.read(game_index, gen, 26)
-    let (row_27) = stored_row.read(game_index, gen, 27)
-    let (row_28) = stored_row.read(game_index, gen, 28)
-    let (row_29) = stored_row.read(game_index, gen, 29)
-    let (row_30) = stored_row.read(game_index, gen, 30)
-    let (row_31) = stored_row.read(game_index, gen, 31)
 
     return (row_0, row_1, row_2, row_3, row_4, row_5,
         row_6, row_7, row_8, row_9, row_10, row_11,
-        row_12, row_13, row_14, row_15, row_16, row_17,
-        row_18, row_19, row_20, row_21, row_22, row_23,
-        row_24, row_25, row_26, row_27, row_28, row_29,
-        row_30, row_31)
+        row_12, row_13, row_14)
 end
 
 # Get a collection of recently created (or specified) games.
@@ -470,25 +407,15 @@ func get_recently_created{
         a_gen, b_gen, c_gen, d_gen, e_gen,
         a_owner, b_owner, c_owner, d_owner, e_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31
+        e10, e11, e12, e13, e14,
     ):
     # Can return the games for indices n, n-1, n-2, n-3, n-4, where
     # n is the the specified index. If the index specified is 0,
@@ -506,33 +433,23 @@ func get_recently_created{
     # Fetch images for the latest games
     let (local a_gen) = latest_game_generation.read(game_index)
     let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31) = view_game(game_index, a_gen)
+        a10, a11, a12, a13, a14) = view_game(game_index, a_gen)
 
     let (local b_gen) = latest_game_generation.read(game_index - 1)
     let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31) = view_game(game_index - 1, b_gen)
+        b10, b11, b12, b13, b14) = view_game(game_index - 1, b_gen)
 
     let (local c_gen) = latest_game_generation.read(game_index - 2)
     let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31) = view_game(game_index - 2, c_gen)
+        c10, c11, c12, c13, c14) = view_game(game_index - 2, c_gen)
 
     let (local d_gen) = latest_game_generation.read(game_index - 3)
     let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31) = view_game(game_index - 3, d_gen)
+        d10, d11, d12, d13, d14) = view_game(game_index - 3, d_gen)
 
     let (local e_gen) = latest_game_generation.read(game_index - 4)
     let (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31) = view_game(game_index - 4, e_gen)
+        e10, e11, e12, e13, e14) = view_game(game_index - 4, e_gen)
 
     let (a_owner) = owner_of_game.read(game_index)
     let (b_owner) = owner_of_game.read(game_index - 1)
@@ -544,25 +461,15 @@ func get_recently_created{
         a_gen, b_gen, c_gen, d_gen, e_gen,
         a_owner, b_owner, c_owner, d_owner, e_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31)
+        e10, e11, e12, e13, e14)
 end
 
 
@@ -577,29 +484,17 @@ func get_recent_generations_of_game{
     ) -> (
         owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31,
+        e10, e11, e12, e13, e14,
         z0, z1, z2, z3, z4, z5, z6, z7, z8, z9,
-        z10, z11, z12, z13, z14, z15, z16, z17, z18, z19,
-        z20, z21, z22, z23, z24, z25, z26, z27, z28, z29,
-        z30, z31
+        z10, z11, z12, z13, z14,
     ):
     # Can return the states of a single game
     # for indices n, n-1, n-2, n-3, n-4, where
@@ -619,63 +514,39 @@ func get_recent_generations_of_game{
 
     # Fetch images for the latest generations
     let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31) = view_game(game_index, gen)
+        a10, a11, a12, a13, a14) = view_game(game_index, gen)
 
     let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31) = view_game(game_index, gen - 1)
+        b10, b11, b12, b13, b14) = view_game(game_index, gen - 1)
 
     let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31) = view_game(game_index, gen - 2)
+        c10, c11, c12, c13, c14) = view_game(game_index, gen - 2)
 
     let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31) = view_game(game_index, gen - 3)
+        d10, d11, d12, d13, d14) = view_game(game_index, gen - 3)
 
     let (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31) = view_game(game_index, gen - 4)
+        e10, e11, e12, e13, e14) = view_game(game_index, gen - 4)
 
     # Also get the image from when the game was created.
     let (z0, z1, z2, z3, z4, z5, z6, z7, z8, z9,
-        z10, z11, z12, z13, z14, z15, z16, z17, z18, z19,
-        z20, z21, z22, z23, z24, z25, z26, z27, z28, z29,
-        z30, z31) = view_game(game_index, 0)
+        z10, z11, z12, z13, z14) = view_game(game_index, 0)
 
     let (owner) = owner_of_game.read(game_index)
 
     return (owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31,
+        e10, e11, e12, e13, e14,
         z0, z1, z2, z3, z4, z5, z6, z7, z8, z9,
-        z10, z11, z12, z13, z14, z15, z16, z17, z18, z19,
-        z20, z21, z22, z23, z24, z25, z26, z27, z28, z29,
-        z30, z31)
+        z10, z11, z12, z13, z14)
 end
 
 # View games and tokens of a particular user.
@@ -692,25 +563,15 @@ func get_user_data{
         a_index, b_index, c_index, d_index, e_index,
         a_gen, b_gen, c_gen, d_gen, e_gen,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31
+        e10, e11, e12, e13, e14
     ):
     # Returns the current state of games that a user owns,
     # plus how many credits tokens they have, plus how many games
@@ -739,57 +600,37 @@ func get_user_data{
     # Fetch images for the latest generations
     let (local a_gen) = latest_game_generation.read(a_index)
     let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31) = view_game(a_index, a_gen)
+        a10, a11, a12, a13, a14) = view_game(a_index, a_gen)
 
     let (local b_gen) = latest_game_generation.read(b_index)
     let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31) = view_game(b_index, b_gen)
+        b10, b11, b12, b13, b14) = view_game(b_index, b_gen)
 
     let (local c_gen) = latest_game_generation.read(c_index)
     let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31) = view_game(c_index, c_gen)
+        c10, c11, c12, c13, c14) = view_game(c_index, c_gen)
 
     let (local d_gen) = latest_game_generation.read(d_index)
     let (d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31) = view_game(d_index, d_gen)
+        d10, d11, d12, d13, d14) = view_game(d_index, d_gen)
 
     let (local e_gen) = latest_game_generation.read(e_index)
     let (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31) = view_game(e_index, e_gen)
+        e10, e11, e12, e13, e14) = view_game(e_index, e_gen)
 
     return (count, credits,
         a_index, b_index, c_index, d_index, e_index,
         a_gen, b_gen, c_gen, d_gen, e_gen,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31,
+        c10, c11, c12, c13, c14,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
-        d10, d11, d12, d13, d14, d15, d16, d17, d18, d19,
-        d20, d21, d22, d23, d24, d25, d26, d27, d28, d29,
-        d30, d31,
+        d10, d11, d12, d13, d14,
         e0, e1, e2, e3, e4, e5, e6, e7, e8, e9,
-        e10, e11, e12, e13, e14, e15, e16, e17, e18, e19,
-        e20, e21, e22, e23, e24, e25, e26, e27, e28, e29,
-        e30, e31)
+        e10, e11, e12, e13, e14)
 end
 
 # Fetch state for a particular user to some depth from most recent.
@@ -823,7 +664,7 @@ func get_recent_user_data{
     # E.g., get 5 of the users games with indices: 9, 8, 7, 6 & 5.
     build_array(count - 1, n_games_to_fetch, inventory_indices)
     # Length of the state array:
-    let states_len = n_games_to_fetch * n_gens_to_fetch_per_game * 32
+    let states_len = n_games_to_fetch * n_gens_to_fetch_per_game * 15
     let (local states : felt*) = alloc()
     append_recent_user_games(user_address, inventory_indices,
         n_games_to_fetch, n_gens_to_fetch_per_game, states)
@@ -847,7 +688,7 @@ func get_recent_games{
         range_check_ptr
     }(
         number_of_recent_games : felt
-    ) -> (g_game_index, current_gen, game_owner, game_genesis_row_0, game_genesis_row_1, game_genesis_row_2, game_genesis_row_3, game_genesis_row_4, game_genesis_row_5, game_genesis_row_6, game_genesis_row_7, game_genesis_row_8, game_genesis_row_9, game_genesis_row_10, game_genesis_row_11, game_genesis_row_12, game_genesis_row_13, game_genesis_row_14, game_genesis_row_15, game_genesis_row_16, game_genesis_row_17, game_genesis_row_18, game_genesis_row_19, game_genesis_row_20, game_genesis_row_21, game_genesis_row_22, game_genesis_row_23, game_genesis_row_24, game_genesis_row_25, game_genesis_row_26, game_genesis_row_27, game_genesis_row_28, game_genesis_row_29, game_genesis_row_30, game_genesis_row_31
+    ) -> (g_game_index, current_gen, game_owner, game_genesis_row_0, game_genesis_row_1, game_genesis_row_2, game_genesis_row_3, game_genesis_row_4, game_genesis_row_5, game_genesis_row_6, game_genesis_row_7, game_genesis_row_8, game_genesis_row_9, game_genesis_row_10, game_genesis_row_11, game_genesis_row_12, game_genesis_row_13, game_genesis_row_14
     ):
     alloc_locals
     assert_not_zero(number_of_recent_games)
@@ -872,29 +713,13 @@ func get_recent_games{
     let (game_genesis_row_12) = stored_row.read(game_index=g_game_index, gen=0, row=12)
     let (game_genesis_row_13) = stored_row.read(game_index=g_game_index, gen=0, row=13)
     let (game_genesis_row_14) = stored_row.read(game_index=g_game_index, gen=0, row=14)
-    let (game_genesis_row_15) = stored_row.read(game_index=g_game_index, gen=0, row=15)
-    let (game_genesis_row_16) = stored_row.read(game_index=g_game_index, gen=0, row=16)
-    let (game_genesis_row_17) = stored_row.read(game_index=g_game_index, gen=0, row=17)
-    let (game_genesis_row_18) = stored_row.read(game_index=g_game_index, gen=0, row=18)
-    let (game_genesis_row_19) = stored_row.read(game_index=g_game_index, gen=0, row=19)
-    let (game_genesis_row_20) = stored_row.read(game_index=g_game_index, gen=0, row=20)
-    let (game_genesis_row_21) = stored_row.read(game_index=g_game_index, gen=0, row=21)
-    let (game_genesis_row_22) = stored_row.read(game_index=g_game_index, gen=0, row=22)
-    let (game_genesis_row_23) = stored_row.read(game_index=g_game_index, gen=0, row=23)
-    let (game_genesis_row_24) = stored_row.read(game_index=g_game_index, gen=0, row=24)
-    let (game_genesis_row_25) = stored_row.read(game_index=g_game_index, gen=0, row=25)
-    let (game_genesis_row_26) = stored_row.read(game_index=g_game_index, gen=0, row=26)
-    let (game_genesis_row_27) = stored_row.read(game_index=g_game_index, gen=0, row=27)
-    let (game_genesis_row_28) = stored_row.read(game_index=g_game_index, gen=0, row=28)
-    let (game_genesis_row_29) = stored_row.read(game_index=g_game_index, gen=0, row=29)
-    let (game_genesis_row_30) = stored_row.read(game_index=g_game_index, gen=0, row=30)
-    let (game_genesis_row_31) = stored_row.read(game_index=g_game_index, gen=0, row=31)
+
     # get the owner
     let (game_owner) = owner_of_game.read(g_game_index)
 
     # repeat in recursion, pack into something and return
 
-    return (g_game_index=g_game_index, current_gen=current_gen, game_owner=game_owner, game_genesis_row_0=game_genesis_row_0, game_genesis_row_1=game_genesis_row_1, game_genesis_row_2=game_genesis_row_2, game_genesis_row_3=game_genesis_row_3, game_genesis_row_4=game_genesis_row_4, game_genesis_row_5=game_genesis_row_5, game_genesis_row_6=game_genesis_row_6, game_genesis_row_7=game_genesis_row_7, game_genesis_row_8=game_genesis_row_8, game_genesis_row_9=game_genesis_row_9, game_genesis_row_10=game_genesis_row_10, game_genesis_row_11=game_genesis_row_11, game_genesis_row_12=game_genesis_row_12, game_genesis_row_13=game_genesis_row_13, game_genesis_row_14=game_genesis_row_14, game_genesis_row_15=game_genesis_row_15, game_genesis_row_16=game_genesis_row_16, game_genesis_row_17=game_genesis_row_17, game_genesis_row_18=game_genesis_row_18, game_genesis_row_19=game_genesis_row_19, game_genesis_row_20=game_genesis_row_20, game_genesis_row_21=game_genesis_row_21, game_genesis_row_22=game_genesis_row_22, game_genesis_row_23=game_genesis_row_23, game_genesis_row_24=game_genesis_row_24, game_genesis_row_25=game_genesis_row_25, game_genesis_row_26=game_genesis_row_26, game_genesis_row_27=game_genesis_row_27, game_genesis_row_28=game_genesis_row_28, game_genesis_row_29=game_genesis_row_29, game_genesis_row_30=game_genesis_row_30, game_genesis_row_31=game_genesis_row_31)
+    return (g_game_index=g_game_index, current_gen=current_gen, game_owner=game_owner, game_genesis_row_0=game_genesis_row_0, game_genesis_row_1=game_genesis_row_1, game_genesis_row_2=game_genesis_row_2, game_genesis_row_3=game_genesis_row_3, game_genesis_row_4=game_genesis_row_4, game_genesis_row_5=game_genesis_row_5, game_genesis_row_6=game_genesis_row_6, game_genesis_row_7=game_genesis_row_7, game_genesis_row_8=game_genesis_row_8, game_genesis_row_9=game_genesis_row_9, game_genesis_row_10=game_genesis_row_10, game_genesis_row_11=game_genesis_row_11, game_genesis_row_12=game_genesis_row_12, game_genesis_row_13=game_genesis_row_13, game_genesis_row_14=game_genesis_row_14)
 end
 
 #############################
@@ -928,7 +753,7 @@ func append_recent_user_games{
     let (latest_gen) = latest_game_generation.read(game_index)
     # Calculate the offset for this particular game.
     # For the first game in the inventory, offset=0.
-    let offset = inventory_index * n_gens_per_game * 32
+    let offset = inventory_index * n_gens_per_game * 15
     # Build an array of the desired generations.
     let (local game_gens : felt*) = alloc()
     build_array(latest_gen, n_gens_per_game, game_gens)
@@ -987,42 +812,23 @@ func append_states{
     let index = len - 1
     # Get rows for the n-th requested generation.
     let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
-        r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
-        r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
-        r30, r31) = view_game(game_index, gen_id_array[index])
+        r10, r11, r12, r13, r14) = view_game(game_index, gen_id_array[index])
     # Append 32 new rows to the multi-state for every gen requested.
-    assert states[offset + index * 32 + 0] = r0
-    assert states[offset + index * 32 + 1] = r1
-    assert states[offset + index * 32 + 2] = r2
-    assert states[offset + index * 32 + 3] = r3
-    assert states[offset + index * 32 + 4] = r4
-    assert states[offset + index * 32 + 5] = r5
-    assert states[offset + index * 32 + 6] = r6
-    assert states[offset + index * 32 + 7] = r7
-    assert states[offset + index * 32 + 8] = r8
-    assert states[offset + index * 32 + 9] = r9
-    assert states[offset + index * 32 + 10] = r10
-    assert states[offset + index * 32 + 11] = r11
-    assert states[offset + index * 32 + 12] = r12
-    assert states[offset + index * 32 + 13] = r13
-    assert states[offset + index * 32 + 14] = r14
-    assert states[offset + index * 32 + 15] = r15
-    assert states[offset + index * 32 + 16] = r16
-    assert states[offset + index * 32 + 17] = r17
-    assert states[offset + index * 32 + 18] = r18
-    assert states[offset + index * 32 + 19] = r19
-    assert states[offset + index * 32 + 20] = r20
-    assert states[offset + index * 32 + 21] = r21
-    assert states[offset + index * 32 + 22] = r22
-    assert states[offset + index * 32 + 23] = r23
-    assert states[offset + index * 32 + 24] = r24
-    assert states[offset + index * 32 + 25] = r25
-    assert states[offset + index * 32 + 26] = r26
-    assert states[offset + index * 32 + 27] = r27
-    assert states[offset + index * 32 + 28] = r28
-    assert states[offset + index * 32 + 29] = r29
-    assert states[offset + index * 32 + 30] = r30
-    assert states[offset + index * 32 + 31] = r31
+    assert states[offset + index * 15 + 0] = r0
+    assert states[offset + index * 15 + 1] = r1
+    assert states[offset + index * 15 + 2] = r2
+    assert states[offset + index * 15 + 3] = r3
+    assert states[offset + index * 15 + 4] = r4
+    assert states[offset + index * 15 + 5] = r5
+    assert states[offset + index * 15 + 6] = r6
+    assert states[offset + index * 15 + 7] = r7
+    assert states[offset + index * 15 + 8] = r8
+    assert states[offset + index * 15 + 9] = r9
+    assert states[offset + index * 15 + 10] = r10
+    assert states[offset + index * 15 + 11] = r11
+    assert states[offset + index * 15 + 12] = r12
+    assert states[offset + index * 15 + 13] = r13
+    assert states[offset + index * 15 + 14] = r14
 
     return ()
 end
@@ -1055,7 +861,7 @@ func unpack_rows{
     let (local stored_row_unpacked : felt*) = alloc()
     split_int(
         value=saved_row,
-        n=32,
+        n=15,
         base=2,
         bound=2,
         output=stored_row_unpacked)

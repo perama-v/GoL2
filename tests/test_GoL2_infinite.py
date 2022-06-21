@@ -13,7 +13,7 @@ signers = []
 USER_IDS = [76543, 23456, 12345, 78787, 94321, 36576] * 6
 
 # Game constants
-DIM = 32
+DIM = 15
 
 @pytest.fixture(scope='module')
 def event_loop():
@@ -126,8 +126,8 @@ async def test_game_flow(game_factory):
     print('f', f)
     print('g', g)
     print('h', h)
-    for i in range(0, len(requested_states), 32):
-        game = requested_states[i:i + 32]
+    for i in range(0, len(requested_states), 15):
+        game = requested_states[i:i + 15]
         states.append(game)
     #await display(states)
 

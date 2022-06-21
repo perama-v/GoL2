@@ -20,7 +20,7 @@ from contracts.utils.life_rules import (evaluate_rounds,
 
 ##### Constants #####
 # Width of the simulation grid.
-const DIM = 32
+const DIM = 15
 
 ##### Storage #####
 
@@ -108,9 +108,9 @@ func constructor{
     # Start with an acorn near bottom right in a 32x32 grid.
     # https://www.conwaylife.com/patterns/acorn.cells
     # https://playgameoflife.com/lexicon/acorn
-    historical_row.write(1, 12, 32)
-    historical_row.write(1, 13, 8)
-    historical_row.write(1, 14, 103)
+    historical_row.write(1, 6, 32)
+    historical_row.write(1, 7, 8)
+    historical_row.write(1, 8, 103)
     # Set the current generation as '1'.
     current_generation.write(1)
     # Prevent entry to this function again.
@@ -309,11 +309,7 @@ func view_game{
         row_0 : felt, row_1 : felt, row_2 : felt, row_3 : felt,
         row_4 : felt, row_5 : felt, row_6 : felt, row_7 : felt,
         row_8 : felt, row_9 : felt, row_10 : felt, row_11 : felt,
-        row_12 : felt, row_13 : felt, row_14 : felt, row_15 : felt,
-        row_16 : felt, row_17 : felt, row_18 : felt, row_19 : felt,
-        row_20 : felt, row_21 : felt, row_22 : felt, row_23 : felt,
-        row_24 : felt, row_25 : felt, row_26 : felt, row_27 : felt,
-        row_28 : felt, row_29 : felt, row_30 : felt, row_31 : felt
+        row_12 : felt, row_13 : felt, row_14 : felt
     ):
     let gen_id = id_of_generation_to_view
 
@@ -332,30 +328,10 @@ func view_game{
     let (row_12) = historical_row.read(gen_id, 12)
     let (row_13) = historical_row.read(gen_id, 13)
     let (row_14) = historical_row.read(gen_id, 14)
-    let (row_15) = historical_row.read(gen_id, 15)
-    let (row_16) = historical_row.read(gen_id, 16)
-    let (row_17) = historical_row.read(gen_id, 17)
-    let (row_18) = historical_row.read(gen_id, 18)
-    let (row_19) = historical_row.read(gen_id, 19)
-    let (row_20) = historical_row.read(gen_id, 20)
-    let (row_21) = historical_row.read(gen_id, 21)
-    let (row_22) = historical_row.read(gen_id, 22)
-    let (row_23) = historical_row.read(gen_id, 23)
-    let (row_24) = historical_row.read(gen_id, 24)
-    let (row_25) = historical_row.read(gen_id, 25)
-    let (row_26) = historical_row.read(gen_id, 26)
-    let (row_27) = historical_row.read(gen_id, 27)
-    let (row_28) = historical_row.read(gen_id, 28)
-    let (row_29) = historical_row.read(gen_id, 29)
-    let (row_30) = historical_row.read(gen_id, 30)
-    let (row_31) = historical_row.read(gen_id, 31)
 
     return (row_0, row_1, row_2, row_3, row_4, row_5,
         row_6, row_7, row_8, row_9, row_10, row_11,
-        row_12, row_13, row_14, row_15, row_16, row_17,
-        row_18, row_19, row_20, row_21, row_22, row_23,
-        row_24, row_25, row_26, row_27, row_28, row_29,
-        row_30, row_31)
+        row_12, row_13, row_14)
 end
 
 
@@ -484,17 +460,11 @@ func latest_useful_state{
         r8_id, r8_gen, r8_row, r8_col, r8_owner,
         r9_id, r9_gen, r9_row, r9_col, r9_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31
+        c10, c11, c12, c13, c14
     ):
     # gen_id = la
     alloc_locals
@@ -542,19 +512,13 @@ func latest_useful_state{
     let (_, r9_gen, r9_row, r9_col, r9_owner) = get_token_data(r9_id)
 
     let (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31) = view_game(gen_id)
+        a10, a11, a12, a13, a14) = view_game(gen_id)
 
     let (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31) = view_game(gen_id - 1)
+        b10, b11, b12, b13, b14) = view_game(gen_id - 1)
 
     let (c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31) = view_game(gen_id - 2)
+        c10, c11, c12, c13, c14) = view_game(gen_id - 2)
 
     let (a_owner) = owner_of_generation.read(gen_id)
     let (b_owner) = owner_of_generation.read(gen_id - 1)
@@ -572,17 +536,11 @@ func latest_useful_state{
         r8_id, r8_gen, r8_row, r8_col, r8_owner,
         r9_id, r9_gen, r9_row, r9_col, r9_owner,
         a0, a1, a2, a3, a4, a5, a6, a7, a8, a9,
-        a10, a11, a12, a13, a14, a15, a16, a17, a18, a19,
-        a20, a21, a22, a23, a24, a25, a26, a27, a28, a29,
-        a30, a31,
+        a10, a11, a12, a13, a14,
         b0, b1, b2, b3, b4, b5, b6, b7, b8, b9,
-        b10, b11, b12, b13, b14, b15, b16, b17, b18, b19,
-        b20, b21, b22, b23, b24, b25, b26, b27, b28, b29,
-        b30, b31,
+        b10, b11, b12, b13, b14,
         c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-        c10, c11, c12, c13, c14, c15, c16, c17, c18, c19,
-        c20, c21, c22, c23, c24, c25, c26, c27, c28, c29,
-        c30, c31)
+        c10, c11, c12, c13, c14)
 end
 
 # Pass a list of generation ids to fetch multiple states.
@@ -639,7 +597,7 @@ func get_arbitrary_state_arrays{
     # B Append rows for all the generations requested.
     let (local gen_ids_array_result : felt*) = alloc()
     append_states(gen_ids_array_len, gen_ids_array, gen_ids_array_result)
-    local gen_ids_array_result_len = 32 * gen_ids_array_len
+    local gen_ids_array_result_len = 15 * gen_ids_array_len
 
     # C Add owners for specific.
     let (local specific_state_owners : felt*) = alloc()
@@ -651,7 +609,7 @@ func get_arbitrary_state_arrays{
     # Make a list of descending numbers.
     build_array(current_generation_id, n_latest_states, recent_gen_ids)
     let (local n_latest_states_result : felt*) = alloc()
-    local n_latest_states_result_len = 32 * n_latest_states
+    local n_latest_states_result_len = 15 * n_latest_states
     append_states(n_latest_states, recent_gen_ids, n_latest_states_result)
 
     # E Add owners for latest.
@@ -805,42 +763,23 @@ func append_states{
     let index = len - 1
     # Get rows for the n-th requested generation.
     let (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
-        r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
-        r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
-        r30, r31) = view_game(gen_id_array[index])
+        r10, r11, r12, r13, r14) = view_game(gen_id_array[index])
     # Append 32 new rows to the multi-state for every gen requested.
-    assert states[index * 32 + 0] = r0
-    assert states[index * 32 + 1] = r1
-    assert states[index * 32 + 2] = r2
-    assert states[index * 32 + 3] = r3
-    assert states[index * 32 + 4] = r4
-    assert states[index * 32 + 5] = r5
-    assert states[index * 32 + 6] = r6
-    assert states[index * 32 + 7] = r7
-    assert states[index * 32 + 8] = r8
-    assert states[index * 32 + 9] = r9
-    assert states[index * 32 + 10] = r10
-    assert states[index * 32 + 11] = r11
-    assert states[index * 32 + 12] = r12
-    assert states[index * 32 + 13] = r13
-    assert states[index * 32 + 14] = r14
-    assert states[index * 32 + 15] = r15
-    assert states[index * 32 + 16] = r16
-    assert states[index * 32 + 17] = r17
-    assert states[index * 32 + 18] = r18
-    assert states[index * 32 + 19] = r19
-    assert states[index * 32 + 20] = r20
-    assert states[index * 32 + 21] = r21
-    assert states[index * 32 + 22] = r22
-    assert states[index * 32 + 23] = r23
-    assert states[index * 32 + 24] = r24
-    assert states[index * 32 + 25] = r25
-    assert states[index * 32 + 26] = r26
-    assert states[index * 32 + 27] = r27
-    assert states[index * 32 + 28] = r28
-    assert states[index * 32 + 29] = r29
-    assert states[index * 32 + 30] = r30
-    assert states[index * 32 + 31] = r31
+    assert states[index * 15 + 0] = r0
+    assert states[index * 15 + 1] = r1
+    assert states[index * 15 + 2] = r2
+    assert states[index * 15 + 3] = r3
+    assert states[index * 15 + 4] = r4
+    assert states[index * 15 + 5] = r5
+    assert states[index * 15 + 6] = r6
+    assert states[index * 15 + 7] = r7
+    assert states[index * 15 + 8] = r8
+    assert states[index * 15 + 9] = r9
+    assert states[index * 15 + 10] = r10
+    assert states[index * 15 + 11] = r11
+    assert states[index * 15 + 12] = r12
+    assert states[index * 15 + 13] = r13
+    assert states[index * 15 + 14] = r14
 
     return ()
 end
@@ -932,7 +871,7 @@ func unpack_rows{
     let (local stored_row_unpacked : felt*) = alloc()
     split_int(
         value=stored_row,
-        n=32,
+        n=15,
         base=2,
         bound=2,
         output=stored_row_unpacked)

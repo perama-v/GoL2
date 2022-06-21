@@ -5,7 +5,7 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 from starkware.cairo.common.math import split_int
 
-const DIM = 32
+const DIM = 15
 # Post-sim. Walk rows then columns to store state.
 func pack_rows{
         syscall_ptr : felt*,
@@ -151,7 +151,7 @@ func custom_bitwise_and{
     alloc_locals
     let (local result_array : felt*) = alloc()
     # Only read up to 32 values.
-    split_int(value=packed_value, n=32, base=2, bound=2, output=result_array)
+    split_int(value=packed_value, n=15, base=2, bound=2, output=result_array)
     let res = result_array[binary_position]
     return (res)
 end

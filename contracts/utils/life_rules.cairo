@@ -4,7 +4,7 @@ from starkware.cairo.common.math_cmp import is_nn, is_le, is_in_range
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 
-const DIM = 32
+const DIM = 15
 
 
 # Executes rounds and returns an array with final state.
@@ -142,25 +142,25 @@ func get_adjacent{
 
     if col == 0:
         # Cell is on left, and needs to wrap.
-        assert L = cell_idx + 31
+        assert L = cell_idx + 14
     else:
         assert L = cell_idx - 1
     end
 
-    if col - 31 == 0:
+    if col - 14 == 0:
         # Cell is on right, and needs to wrap.
-        assert R = cell_idx - 31
+        assert R = cell_idx - 14
     else:
         assert R = cell_idx + 1
     end
 
 
     # Bottom neighbours: D, LD, RD
-    if row - 31 == 0:
+    if row - 14 == 0:
         # Lower neighbour cells are on top, and need to wrap.
-        assert D = cell_idx - 992 # (DIM - DIM * DIM)
-        assert LD = L - 992
-        assert RD = R - 992
+        assert D = cell_idx - 210 # (DIM - DIM * DIM)
+        assert LD = L - 210
+        assert RD = R - 210
     else:
         # Lower neighbour cells are not top row, don't wrap.
         assert D = cell_idx + DIM
@@ -171,9 +171,9 @@ func get_adjacent{
     # Top neighbours: U, LU, RU
     if row == 0:
         # Upper neighbour cells are on top, and need to wrap.
-        assert U = cell_idx + 992 # (DIM * DIM - DIM)
-        assert LU = L + 992
-        assert RU = R + 992
+        assert U = cell_idx + 210 # (DIM * DIM - DIM)
+        assert LU = L + 210
+        assert RU = R + 210
     else:
         # Upper neighbour cells are not top row, don't wrap.
         assert U = cell_idx - DIM

@@ -10,7 +10,7 @@ DUMMY_PRIVATE = 12345678987654321
 signers = []
 
 # Game constants
-DIM = 32
+DIM = 15
 
 @pytest.fixture(scope='module')
 def event_loop():
@@ -85,11 +85,11 @@ async def test_create(game_factory):
     assert credit_count == N_CONTRIB
 
     # Redeem credits
-    row_states = [ 2**(i) for i in range(32) ]
+    row_states = [ 2**(i) for i in range(15) ]
     # Add an acorn to the diagram
-    row_states[12] = 32
-    row_states[13] = 8
-    row_states[14] = 103
+    row_states[6] = 32
+    row_states[7] = 8
+    row_states[8] = 103
 
     await signers[0].send_transaction(
         account=accounts[0],
@@ -153,7 +153,7 @@ async def test_getter(game_factory):
 
 
     # Acorn top right.
-    row_states = [0]*32
+    row_states = [0]*15
     row_states[2] = 32
     row_states[3] = 8
     row_states[4] = 103
@@ -174,8 +174,8 @@ async def test_getter(game_factory):
     print(r.result.states)
     requested_states = games * gens
     states = []
-    for i in range(0, requested_states, 32):
-        game = r.result.states[i:i + 32]
+    for i in range(0, requested_states, 15):
+        game = r.result.states[i:i + 15]
         states.append(game)
     await view(states)
 
