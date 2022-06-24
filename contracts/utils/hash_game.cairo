@@ -1,22 +1,18 @@
 from starkware.cairo.common.hash_state import (hash_init,
-    hash_update, HashState)
-from starkware.cairo.common.cairo_builtins import (HashBuiltin,
-    BitwiseBuiltin)
+    hash_update_single, HashState)
+from starkware.cairo.common.cairo_builtins import HashBuiltin
 
-
-# Computes the unique hash of a list of felts.
 func hash_game{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        list : felt*,
-        list_len : felt
+        item : felt
     ) -> (
         hash : felt
     ):
-    let (list_hash : HashState*) = hash_init()
-    let (list_hash : HashState*) = hash_update{
-        hash_ptr=pedersen_ptr}(list_hash, list, list_len)
-    return (list_hash.current_hash)
+    let (hash_state : HashState*) = hash_init()
+    let (hash_state : HashState*) = hash_update_single{
+        hash_ptr=pedersen_ptr}(hash_state, item)
+    return (hash_state.current_hash)
 end
