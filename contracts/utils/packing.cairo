@@ -33,8 +33,8 @@ func pack_cells{
         packed_cells=packed_cells
     )
     
-    let (bit) = pow(2, (cells_len - 1))
-    let cell_binary = cells[cells_len - 1] * bit
+    let (local bit) = pow(2, (cells_len - 1))
+    local cell_binary = cells[cells_len - 1] * bit
     let new_game_value = cell_binary + packed_cells
 
     return (new_game_value)
@@ -86,8 +86,8 @@ func pack_game{
     ):
     alloc_locals
 
-    let bits = 2**128
-    let packed_game = high * bits + low
+    local bits = 2**128
+    local packed_game = high * bits + low
 
     return(packed_game)
 end

@@ -1,0 +1,34 @@
+["info"]
+name = "game-of-life"
+description = "A starknet implementation of Conway's Game Of Life"
+license = "MIT"
+version = "0.0.1-alpha"
+authors = [
+    "wojciech.szymczyk@swmansion.com", "perama-v"
+]
+
+["protostar.config"]
+protostar_version = "0.2.4"
+
+["protostar.project"]
+libs_path = "lib"
+
+["protostar.shared_command_configs"]
+cairo_path = ["contracts"]
+
+["protostar.contracts"]
+infinite = [
+    "contracts/infinite.cairo",
+]
+creator = [
+    "contracts/creator.cairo"
+]
+
+[profile.devnet.protostar.deploy]
+gateway-url="http://127.0.0.1:5050/"
+
+[profile.testnet.protostar.deploy]
+network="alpha-goerli"
+
+[profile.mainnet.protostar.deploy]
+network="alpha-mainnet"
