@@ -61,7 +61,7 @@ func apply_rules{
     local pedersen_ptr : HashBuiltin* = pedersen_ptr
 
     # Get indices of neighbours.
-    let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx)
+    let (L, R, U, D, LU, RU, LD, RD) = get_adjecent(cell_idx)
 
     local range_check_ptr = range_check_ptr
     # Sum of 8 surrounding cells.
@@ -92,7 +92,7 @@ func apply_rules{
     return ()
 end
 
-func get_adjacent{
+func get_adjecent{
         range_check_ptr
     }(
         cell_idx : felt

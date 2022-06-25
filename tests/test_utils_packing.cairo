@@ -5,20 +5,8 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import split_felt
 
-from contracts.utils.hash_game import hash_game
 from contracts.utils.packing import (pack_cells,
     unpack_cells, pack_game)
-
-@external
-func test_hash_game{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }():
-    let (hash) = hash_game(107839786668602559178668060348078522694548577690162289924414444765192)
-    assert hash = 0x1b8a88ed549497258738414a5c0d70a0a7b0e32091bd501d26573580392c92b
-    return ()
-end
 
 @external
 func test_pack_cells{
@@ -439,9 +427,9 @@ func test_pack_game_acorn{
     assert cells[125] = 0
     assert cells[126] = 0
     assert cells[127] = 0
-    assert cells[128] = 0
+    assert cells[128] = 1
     assert cells[129] = 1
-    assert cells[130] = 1
+    assert cells[130] = 0
     assert cells[131] = 0
     assert cells[132] = 1
     assert cells[133] = 1
@@ -541,10 +529,10 @@ func test_pack_game_acorn{
     let (low_acorn) = pack_cells(113, cells + 112, packed_cells=0)
 
     assert high_acorn = 633825300114114700748351602688
-    assert low_acorn = 7733264
+    assert low_acorn = 7536656
 
     let (packed_game) = pack_game(high_acorn, low_acorn)
-    assert packed_game = 215679573337205118357336120696157045389097155380324579848828889726992
+    assert packed_game = 215679573337205118357336120696157045389097155380324579848828889530384
 
     let (high_unpacked, low_unpacked) = split_felt(packed_game)
     assert high_unpacked = high_acorn

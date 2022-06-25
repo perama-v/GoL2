@@ -4,14 +4,12 @@
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 from starkware.cairo.common.math import (assert_not_zero, 
-    assert_nn_le, assert_not_equal, split_felt, split_int)
+    assert_le_felt, assert_not_equal, split_felt)
 from starkware.starknet.common.syscalls import get_caller_address
 
 from contracts.utils.packing import pack_game, pack_cells, unpack_cells
-from contracts.utils.life_rules import (evaluate_rounds,
-    apply_rules, get_adjacent)
+from contracts.utils.life_rules import evaluate_rounds
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.bitwise import bitwise_not
 
 
 ##### Constants #####
@@ -90,7 +88,7 @@ func constructor{
         range_check_ptr
     }():
 
-    historical_state.write(1, 107839786668602559178668060348078522694548577690162289924414444765192)
+    historical_state.write(1, 215679573337205118357336120696157045389097155380324579848828889530384)
     # Set the current generation as '1'.
     current_generation.write(1)
     # Prevent entry to this function again.
@@ -189,7 +187,7 @@ func give_life_to_cell{
     assert owner = user_id
 
     let (local owned_credits) = count_credits_owned.read(user_id)
-    assert_nn_le(1, owned_credits)
+    assert_le_felt(1, owned_credits)
 
     activate_cell(cell_index)
 
@@ -308,7 +306,7 @@ func activate_cell{
     ):
     alloc_locals
 
-    assert_nn_le(cell_index, DIM*DIM-1)
+    assert_le_felt(cell_index, DIM*DIM-1)
 
     let (local generation) = current_generation.read()
     let (local game) = historical_state.read(generation)
@@ -336,7 +334,6 @@ func activate_cell{
         low=new_low
     )
 
-    # Reject the transaction if the user is going to waste their time.
     assert_not_equal(game, updated)
     historical_state.write(generation, updated)
 

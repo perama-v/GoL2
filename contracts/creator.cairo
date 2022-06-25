@@ -5,7 +5,7 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import (HashBuiltin,
     BitwiseBuiltin)
 from starkware.cairo.common.math import (assert_not_zero,
-    assert_le, assert_not_equal, split_felt)
+    assert_le_felt, assert_not_equal, split_felt)
 from starkware.starknet.common.syscalls import get_caller_address
 
 from contracts.utils.hash_game import hash_game
@@ -114,8 +114,7 @@ func game_created(
     owner_id: felt,
     game_index : felt,
     game_id : felt,
-    user_game_count : felt,
-    game_index_from_inventory : felt
+    user_game_count : felt
 ):
 end
 
@@ -135,7 +134,7 @@ func constructor{
         range_check_ptr
     }():
     alloc_locals
-    local acorn = 107839786668602559178668060348078522694548577690162289924414444765192
+    local acorn = 215679573337205118357336120696157045389097155380324579848828889530384
     let (game_id) = hash_game(acorn)
 
     # Acorn. Has no owner.
@@ -160,8 +159,7 @@ func constructor{
         owner_id=caller,
         game_index=0,
         game_id=game_id,
-        user_game_count=1,
-        game_index_from_inventory=1
+        user_game_count=1
     )
     return ()
 end
@@ -178,17 +176,17 @@ func create{
         game_state : felt
     ):
     alloc_locals
-    local genesis_state = game_state
 
     let (local caller) = get_caller_address()
     assert_not_zero(caller)
 
     let (credits) = has_credits.read(caller)
-    assert_le(CREDIT_REQUIREMENT, credits)
+
+    assert_le_felt(CREDIT_REQUIREMENT, credits)
     has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
-    # No two games are the same. Game_id == genesis hash.
-    let (local game_id) = hash_game(genesis_state)
+    # No two games are the same. Game_id == game hash.
+    let (local game_id) = hash_game(game_state)
     let (existing_index) = game_index_from_game_id.read(game_id)
     # Ensure that the game has not yet been stored to an index.
     assert existing_index = 0
@@ -197,31 +195,29 @@ func create{
     # Make sure it is different.
     assert_not_equal(spawn_id, game_id)
 
-    local syscall_ptr : felt* = syscall_ptr
     let (current_index) = latest_game_index.read()
-    let idx = current_index + 1
+    let new_index = current_index + 1
     # Store the game
-    stored_game.write(game_index=idx, gen=0, value=game_state)
+    stored_game.write(game_index=new_index, gen=0, value=game_state)
 
     # Update trackers.
-    owner_of_game.write(idx, caller)
+    owner_of_game.write(new_index, caller)
 
-    let (old_index) = latest_game_index.read()
-    let new_index = old_index + 1
     game_id_from_game_index.write(new_index, game_id)
     game_index_from_game_id.write(game_id, new_index)
     latest_game_index.write(new_index)
+
     let (prev_game_count) = user_game_count.read(caller)
-    user_game_count.write(caller, prev_game_count + 1)
+    local new_game_count = prev_game_count + 1
+    user_game_count.write(caller, new_game_count)
     # Index of new = prev_game_count.
     game_index_from_inventory.write(caller, prev_game_count, new_index)
-    game_created.emit(
-        owner_id=caller,
-        game_index=new_index,
-        game_id=game_id,
-        user_game_count=prev_game_count + 1,
-        game_index_from_inventory=prev_game_count
-    )
+#    game_created.emit(
+#        owner_id=caller,
+#        game_index=new_index,
+#        game_id=game_id,
+#        user_game_count=new_game_count
+#    )
     return ()
 end
 
@@ -236,8 +232,12 @@ func contribute{
         game_index : felt
     ):
     alloc_locals
+    let (user) = get_caller_address()
+    assert_not_zero(user)
+
     let (local prev_generation) = latest_game_generation.read(
         game_index)
+
     # Unpack the stored game.
     let (game) = stored_game.read(game_index, prev_generation)
     let (high, low) = split_felt(game)
@@ -270,9 +270,6 @@ func contribute{
         value=packed_game
     )
 
-    # Save the user data.
-    let (user) = get_caller_address()
-    assert_not_zero(user)
     # Give a credit for advancing this particular game.
     let (credits) = has_credits.read(user)
     has_credits.write(user, credits + 1)
