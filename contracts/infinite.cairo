@@ -114,10 +114,11 @@ func evolve_and_claim_next_generation{
     assert_not_zero(caller)
     assert user = caller
 
-    let (local last_gen) = current_generation.read()
     # Limit to one generation per turn.
+    let (local last_gen) = current_generation.read()
     local generations = 1
     local new_gen = last_gen + generations
+
     # Unpack the stored game
     let (game) = historical_state.read(last_gen)
     let (high, low) = split_felt(game)
@@ -129,6 +130,7 @@ func evolve_and_claim_next_generation{
     # Run the game for the specified number of generations.
     let (local cell_states : felt*) = evaluate_rounds(
         generations, cells)
+
     # Split the game to high and low parts and pack it for compact storage.
     let (new_high) = pack_cells(
         cells_len=112,
@@ -153,6 +155,7 @@ func evolve_and_claim_next_generation{
     let (credits) = count_credits_owned.read(user)
     count_credits_owned.write(user, credits + 1)
     owner_of_generation.write(new_gen, user)
+
     game_evolved.emit(
         user_id=user_id,
         gen_id=new_gen

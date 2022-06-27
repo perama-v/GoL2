@@ -98,16 +98,6 @@ func user_game_count(
     ):
 end
 
-# Stores global game index for a given user as an index of their inventory.
-@storage_var
-func game_index_from_inventory(
-        owner_id : felt,
-        inventory_index : felt
-    ) -> (
-        game_index : felt
-    ):
-end
-
 ##### Events #####
 @event
 func game_created(
@@ -149,6 +139,7 @@ func constructor{
     let (current_spawn_id) = game_id_from_game_index.read(0)
     assert current_spawn_id = 0
     let (caller) = get_caller_address()
+
     # Store the zeroth-index game as owned by the caller of spawn().
     owner_of_game.write(0, caller)
 
@@ -181,43 +172,36 @@ func create{
     assert_not_zero(caller)
 
     let (credits) = has_credits.read(caller)
-
     assert_le_felt(CREDIT_REQUIREMENT, credits)
     has_credits.write(caller, credits - CREDIT_REQUIREMENT)
 
     # No two games are the same. Game_id == game hash.
     let (local game_id) = hash_game(game_state)
     let (existing_index) = game_index_from_game_id.read(game_id)
+
     # Ensure that the game has not yet been stored to an index.
     assert existing_index = 0
-    # Get the id of the very first game.
     let (spawn_id) = game_index_from_game_id.read(0)
-    # Make sure it is different.
     assert_not_equal(spawn_id, game_id)
-
     let (current_index) = latest_game_index.read()
     let new_index = current_index + 1
+
     # Store the game
     stored_game.write(game_index=new_index, gen=0, value=game_state)
-
-    # Update trackers.
     owner_of_game.write(new_index, caller)
-
     game_id_from_game_index.write(new_index, game_id)
     game_index_from_game_id.write(game_id, new_index)
     latest_game_index.write(new_index)
-
     let (prev_game_count) = user_game_count.read(caller)
     local new_game_count = prev_game_count + 1
     user_game_count.write(caller, new_game_count)
-    # Index of new = prev_game_count.
-    game_index_from_inventory.write(caller, prev_game_count, new_index)
-#    game_created.emit(
-#        owner_id=caller,
-#        game_index=new_index,
-#        game_id=game_id,
-#        user_game_count=new_game_count
-#    )
+
+    game_created.emit(
+        owner_id=caller,
+        game_index=new_index,
+        game_id=game_id,
+        user_game_count=new_game_count
+    )
     return ()
 end
 
@@ -247,6 +231,7 @@ func contribute{
     )
     # Evolve the game by one generation.
     let (local new_cell_states : felt*) = evaluate_rounds(1, cells)
+
     # Split the game to high and low parts and pack it for compact storage.
     let (new_high) = pack_cells(
         cells_len=112,
@@ -317,26 +302,6 @@ func user_counts{
     let (game_count) = user_game_count.read(user_id)
     let (credit_count) = has_credits.read(user_id)
     return (game_count, credit_count)
-end
-
-
-# Returns game index from the index of a users inventory.
-@view
-func specific_game_of_user{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(
-        user_id : felt,
-        index_of_inventory : felt
-    ) -> (
-        game_index : felt
-    ):
-    # E.g., 'Get the game index for the third game of this user'.
-    let (game_index) = game_index_from_inventory.read(user_id,
-        index_of_inventory)
-
-    return (game_index)
 end
 
 # Returns the latest generation of a given game.
