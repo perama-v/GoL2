@@ -116,6 +116,20 @@ func contribution_made(
 ):
 end
 
+@event
+func credit_earned(
+    user_id : felt, 
+    balance : felt
+):
+end
+
+@event
+func credit_reduced(
+    user_id : felt,
+    balance : felt
+):
+end
+
 ##################
 @constructor
 func constructor{
@@ -125,30 +139,27 @@ func constructor{
     }():
     alloc_locals
     local acorn = 215679573337205118357336120696157045389097155380324579848828889530384
+    local game_index = 1
     let (game_id) = hash_game(acorn)
 
-    # Acorn. Has no owner.
     stored_game.write(
-        game_index=0,
+        game_index=game_index,
         gen=0,
         value=acorn
     )
 
-    # Ensure that spawn is only called once. All other games need
-    # credits to begin.
-    let (current_spawn_id) = game_id_from_game_index.read(0)
-    assert current_spawn_id = 0
     let (caller) = get_caller_address()
 
     # Store the zeroth-index game as owned by the caller of spawn().
-    owner_of_game.write(0, caller)
+    owner_of_game.write(game_index, caller)
 
-    game_id_from_game_index.write(0, game_id)
-    game_index_from_game_id.write(game_id, 0)
-    latest_game_index.write(0)
+    game_id_from_game_index.write(game_index, game_id)
+    game_index_from_game_id.write(game_id, game_index)
+    latest_game_index.write(game_index)
+    latest_game_generation.write(game_index, 0)
     game_created.emit(
         owner_id=caller,
-        game_index=0,
+        game_index=game_index,
         game_id=game_id,
         user_game_count=1
     )
@@ -181,8 +192,6 @@ func create{
 
     # Ensure that the game has not yet been stored to an index.
     assert existing_index = 0
-    let (spawn_id) = game_index_from_game_id.read(0)
-    assert_not_equal(spawn_id, game_id)
     let (current_index) = latest_game_index.read()
     let new_index = current_index + 1
 
@@ -192,6 +201,8 @@ func create{
     game_id_from_game_index.write(new_index, game_id)
     game_index_from_game_id.write(game_id, new_index)
     latest_game_index.write(new_index)
+    latest_game_generation.write(new_index, 0)
+
     let (prev_game_count) = user_game_count.read(caller)
     local new_game_count = prev_game_count + 1
     user_game_count.write(caller, new_game_count)
@@ -201,6 +212,10 @@ func create{
         game_index=new_index,
         game_id=game_id,
         user_game_count=new_game_count
+    )
+    credit_reduced.emit(
+        user_id=caller,
+        balance=credits - CREDIT_REQUIREMENT
     )
     return ()
 end
@@ -216,8 +231,8 @@ func contribute{
         game_index : felt
     ):
     alloc_locals
-    let (user) = get_caller_address()
-    assert_not_zero(user)
+    let (caller) = get_caller_address()
+    assert_not_zero(caller)
 
     let (local prev_generation) = latest_game_generation.read(
         game_index)
@@ -256,15 +271,19 @@ func contribute{
     )
 
     # Give a credit for advancing this particular game.
-    let (credits) = has_credits.read(user)
-    has_credits.write(user, credits + 1)
+    let (credits) = has_credits.read(caller)
+    has_credits.write(caller, credits + 1)
 
     # Save the current generation for easy retrieval.
     latest_game_generation.write(game_index, prev_generation + 1)
     contribution_made.emit(
-        user_id=user,
+        user_id=caller,
         game_index=game_index,
         current_game_generation=prev_generation + 1
+    )
+    credit_earned.emit(
+        user_id=caller,
+        balance=credits + 1
     )
     return ()
 end

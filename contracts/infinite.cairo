@@ -6,6 +6,7 @@ from starkware.cairo.common.cairo_builtins import (HashBuiltin,
 from starkware.cairo.common.math import (assert_not_zero, 
     assert_le_felt, assert_not_equal, split_felt)
 from starkware.starknet.common.syscalls import get_caller_address
+from starkware.cairo.common.memcpy import memcpy
 
 from contracts.utils.packing import pack_game, pack_cells, unpack_cells
 from contracts.utils.life_rules import evaluate_rounds
@@ -18,14 +19,14 @@ const DIM = 15
 
 ##### Storage #####
 
-# Returns the gen_id of the current alive generation.
+# Returns the generation of the current alive generation.
 @storage_var
-func current_generation() -> (gen_id : felt):
+func current_generation() -> (generation : felt):
 end
 
 # Returns the user_id for a given generation_id.
 @storage_var
-func owner_of_generation(gen_id : felt) -> (user_id : felt):
+func owner_of_generation(generation : felt) -> (user_id : felt):
 end
 
 # Returns the total number of credits owned by a user.
@@ -33,7 +34,7 @@ end
 func count_credits_owned(user_id : felt) -> (credits_owned : felt):
 end
 
-# Stores cells revival history for user in (cell_index, gen_id) tuple
+# Stores cells revival history for user in (cell_index, generation) tuple
 @storage_var
 func revival_history(
     user_id: felt
@@ -45,7 +46,7 @@ end
 # Records the history of the game on chain.
 @storage_var
 func historical_state(
-        gen_id : felt
+        generation : felt
     ) -> (
         state : felt
     ):
@@ -55,26 +56,28 @@ end
 @event
 func game_evolved(
     user_id : felt, 
-    gen_id : felt
+    generation : felt
 ):
 end
 
 @event
-func credit_granted(
-    user_id : felt
+func credit_earned(
+    user_id : felt,
+    balance : felt
 ):
 end
 
 @event
-func credit_reducted(
-    user_id : felt
+func credit_reduced(
+    user_id : felt,
+    balance : felt
 ):
 end
 
 @event
 func cell_revived(
     user_id : felt,
-    gen_id : felt,
+    generation : felt,
     cell_index : felt
 ):
 end
@@ -87,11 +90,8 @@ func constructor{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }():
-
     historical_state.write(1, 215679573337205118357336120696157045389097155380324579848828889530384)
-    # Set the current generation as '1'.
     current_generation.write(1)
-    # Prevent entry to this function again.
     return ()
 end
 
@@ -104,15 +104,11 @@ func evolve_and_claim_next_generation{
         bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }(
-        user_id : felt
-    ):
+    }():
     alloc_locals
 
-    let user = user_id
     let (caller) = get_caller_address()
     assert_not_zero(caller)
-    assert user = caller
 
     # Limit to one generation per turn.
     let (local last_gen) = current_generation.read()
@@ -152,15 +148,18 @@ func evolve_and_claim_next_generation{
     current_generation.write(new_gen)
 
     # Grant credits
-    let (credits) = count_credits_owned.read(user)
-    count_credits_owned.write(user, credits + 1)
-    owner_of_generation.write(new_gen, user)
+    let (credits) = count_credits_owned.read(caller)
+    count_credits_owned.write(caller, credits + 1)
+    owner_of_generation.write(new_gen, caller)
 
     game_evolved.emit(
-        user_id=user_id,
-        gen_id=new_gen
+        user_id=caller,
+        generation=new_gen
     )
-    credit_granted.emit(user_id=user_id)
+    credit_earned.emit(
+        user_id=caller,
+        balance=credits + 1
+    )
     return ()
 end
 
@@ -172,7 +171,6 @@ func give_life_to_cell{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        user_id : felt,
         cell_index : felt
     ):
     # This does not trigger an evolution. Multiple give_life
@@ -181,33 +179,34 @@ func give_life_to_cell{
     alloc_locals
 
     # Only the owner can revive
-    let (user) = get_caller_address()
-    assert user = user_id
-    assert_not_zero(user)
+    let (caller) = get_caller_address()
+    assert_not_zero(caller)
+    let (generation) = current_generation.read()
+    let (local owner) = owner_of_generation.read(generation)
+    assert owner = caller
 
-    let (gen_id) = current_generation.read()
-    let (local owner) = owner_of_generation.read(gen_id)
-    assert owner = user_id
-
-    let (local owned_credits) = count_credits_owned.read(user_id)
+    let (local owned_credits) = count_credits_owned.read(caller)
     assert_le_felt(1, owned_credits)
 
     activate_cell(cell_index)
 
     count_credits_owned.write(
-        user_id=user_id,
+        user_id=caller,
         value=owned_credits - 1
     )
 
     revival_history.write(
-        user_id=user_id,
-        value=(cell_index, gen_id)
+        user_id=caller,
+        value=(cell_index, generation)
     )
 
-    credit_reducted.emit(user_id=user_id)
+    credit_reduced.emit(
+        user_id=caller,
+        balance=owned_credits - 1
+    )
     cell_revived.emit(
-        user_id=user_id,
-        gen_id=gen_id,
+        user_id=caller,
+        generation=generation,
         cell_index=cell_index
     )
 
@@ -223,10 +222,10 @@ func current_generation_id{
         range_check_ptr
     }(
     ) -> (
-        gen_id : felt
+        generation : felt
     ):
-    let (gen_id) = current_generation.read()
-    return (gen_id)
+    let (generation) = current_generation.read()
+    return (generation)
 end
 
 # Returns user credits count
@@ -251,11 +250,11 @@ func get_owner_of_generation{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        gen_id : felt
+        generation : felt
     ) -> (
         user_id : felt
     ):
-    let (owner) = owner_of_generation.read(gen_id)
+    let (owner) = owner_of_generation.read(generation)
     return(owner)
 end
 
@@ -269,7 +268,7 @@ func get_revival_history{
         user_id: felt
     ) -> (
         cell_index : felt,
-        gen_id : felt
+        generation : felt
     ):
     let (info) = revival_history.read(user_id)
     return (info[0], info[1])
@@ -283,12 +282,12 @@ func view_game{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(
-        gen_id : felt
+        generation : felt
     ) -> (
         cells_len : felt, cells : felt*
     ):
 
-    let (game) = historical_state.read(gen_id)
+    let (game) = historical_state.read(generation)
     let (high, low) = split_felt(game)
     let (cells_len, cells) = unpack_cells(
         high=high,
@@ -308,8 +307,11 @@ func activate_cell{
         cell_index : felt
     ):
     alloc_locals
+    let (local updated_cells : felt*) = alloc()
 
     assert_le_felt(cell_index, DIM*DIM-1)
+    local upper_len = DIM*DIM - 1 - cell_index
+    local offset = cell_index + 1
 
     let (local generation) = current_generation.read()
     let (local game) = historical_state.read(generation)
@@ -319,16 +321,18 @@ func activate_cell{
         low=low
     )
 
-    assert cells[cell_index] = 1
+    memcpy(updated_cells, cells, cell_index)
+    assert updated_cells[cell_index] = 1
+    memcpy(updated_cells + offset, cells + offset, upper_len)    
 
     let (new_high) = pack_cells(
         cells_len=112,
-        cells=cells,
+        cells=updated_cells,
         packed_cells=0
     )
     let (new_low) = pack_cells(
         cells_len=113,
-        cells=cells + 112,
+        cells=updated_cells + 112,
         packed_cells=0
     )
 
